@@ -1,0 +1,2 @@
+onnxruntime/test/testdata/transform/bert_toy_opset14.onnx filter=lfs diff=lfs merge=lfs -text
+*.onnx filter=lfs diff=lfs merge=lfs -text
