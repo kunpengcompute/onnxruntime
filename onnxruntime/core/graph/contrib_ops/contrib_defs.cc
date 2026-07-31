@@ -1906,6 +1906,41 @@ activation and leaky_relu_alpha.)DOC")
                                   }
                                 }));
 
+ONNX_MS_OPERATOR_SET_SCHEMA(DynamicExpand, 1,
+                            OpSchema()
+                                .Input(0, "X", "input tensor", "T")
+                                .Input(1, "shape_source", "Tensor whose first dimension specifies output dimension 0.", "TShapeSource")
+                                .Output(0, "Y", "output tensor", "T")
+                                .TypeConstraint(
+                                    "T",
+                                    ONNX_NAMESPACE::OpSchema::all_tensor_types(),
+                                    "Constrain to any tensor type.")
+                                .TypeConstraint(
+                                    "TShapeSource",
+                                    ONNX_NAMESPACE::OpSchema::all_tensor_types(),
+                                    "Constrain shape source to any tensor type.")
+                                .TypeAndShapeInferenceFunction([](ONNX_NAMESPACE::InferenceContext& ctx) {
+                                  propagateElemTypeFromInputToOutput(ctx, 0, 0);
+
+                                  if (!hasInputShape(ctx, 0)) {
+                                    return;
+                                  }
+
+                                  const auto& input_shape = getInputShape(ctx, 0);
+                                  ONNX_NAMESPACE::TensorShapeProto output_shape;
+                                  if (hasInputShape(ctx, 1) && getInputShape(ctx, 1).dim_size() > 0) {
+                                    *output_shape.add_dim() = getInputShape(ctx, 1).dim(0);
+                                  } else {
+                                    output_shape.add_dim();
+                                  }
+                                  for (int i = 1; i < input_shape.dim_size(); ++i) {
+                                    *output_shape.add_dim() = input_shape.dim(i);
+                                  }
+
+                                  updateOutputShape(ctx, 0, output_shape);
+                                })
+                                .SetDoc(R"DOC(Expand input tensor to [shape_source.shape[0], input.shape[1], input.shape[2], ...].)DOC"));
+
 ONNX_MS_OPERATOR_SET_SCHEMA(ExpandDims, 1,
                             OpSchema()
                                 .Input(0, "X", "input", "T")
@@ -2235,6 +2270,12 @@ constexpr const char* FusedMatMulActivation_doc = R"DOC(
 Executes the same operation as FusedMatMul, but also has an activation function fused to its output.
 )DOC";
 
+constexpr const char* FusedTensordotMatMul_doc = R"DOC(
+Fuses a TensorFlow Tensordot lowering of flatten Reshape + MatMul + final Reshape.
+The current CPU kernel supports float tensors with one contract axis that maps to
+the last input dimension and a 2D weight tensor.
+)DOC";
+
 ONNX_MS_OPERATOR_SET_SCHEMA(TransposeMatMul, 1,
                             OpSchema()
                                 .Input(0, "A", "N-dimensional matrix A", "T")
@@ -2333,6 +2374,48 @@ ONNX_MS_OPERATOR_SET_SCHEMA(FusedMatMulActivation, 1,
                                                 "Constrain input and output types to float tensors.")
                                 .SetDoc(FusedMatMulActivation_doc)
                                 .TypeAndShapeInferenceFunction([](ONNX_NAMESPACE::InferenceContext& ctx) { FusedMatMulShapeInference(ctx); }));
+
+ONNX_MS_OPERATOR_SET_SCHEMA(FusedTensordotMatMul, 1,
+                            OpSchema()
+                                .Input(0, "X", "Input tensor.", "T")
+                                .Input(1, "W", "2D weight tensor with shape [K, N].", "T")
+                                .Attr("free_axes",
+                                      "Axes preserved in the output before the weight output dimension.",
+                                      AttributeProto::INTS)
+                                .Attr("contract_axes",
+                                      "Axes reduced against W dimension 0. The CPU kernel currently supports one axis.",
+                                      AttributeProto::INTS)
+                                .Output(0, "Y", "Tensordot MatMul result.", "T")
+                                .TypeConstraint("T", {"tensor(float)"}, "Constrain input and output types to float tensors.")
+                                .SetDoc(FusedTensordotMatMul_doc)
+                                .TypeAndShapeInferenceFunction([](ONNX_NAMESPACE::InferenceContext& ctx) {
+                                  propagateElemTypeFromInputToOutput(ctx, 0, 0);
+                                  if (!hasNInputShapes(ctx, 2)) {
+                                    return;
+                                  }
+
+                                  std::vector<int64_t> free_axes;
+                                  getRepeatedAttribute(ctx, "free_axes", free_axes);
+                                  const auto& x_shape = getInputShape(ctx, 0);
+                                  const auto& w_shape = getInputShape(ctx, 1);
+                                  if (w_shape.dim_size() != 2) {
+                                    return;
+                                  }
+
+                                  TensorShapeProto output_shape;
+                                  const int rank = x_shape.dim_size();
+                                  for (auto axis : free_axes) {
+                                    if (axis < 0) {
+                                      axis += rank;
+                                    }
+                                    if (axis < 0 || axis >= rank) {
+                                      return;
+                                    }
+                                    *output_shape.add_dim() = x_shape.dim(static_cast<int>(axis));
+                                  }
+                                  *output_shape.add_dim() = w_shape.dim(1);
+                                  updateOutputShape(ctx, 0, output_shape);
+                                }));
 
 ONNX_MS_OPERATOR_SET_SCHEMA(SparseToDenseMatMul, 1,
                             OpSchema()

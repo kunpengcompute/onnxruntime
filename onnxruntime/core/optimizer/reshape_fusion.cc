@@ -5,6 +5,9 @@
 #include "core/optimizer/initializer.h"
 #include "core/optimizer/reshape_fusion.h"
 #include "core/optimizer/utils.h"
+#include "core/providers/common.h"
+
+#include <algorithm>
 
 using namespace ONNX_NAMESPACE;
 using namespace onnxruntime::common;
@@ -44,9 +47,10 @@ Status ReshapeFusion::ApplyImpl(Graph& graph, bool& modified, int graph_level, c
       continue;
     }
 
+    const std::string reshape_output_name = reshape.OutputDefs()[0]->Name();
     if (ReshapeFusion::Fuse_Subgraph(reshape, graph, logger)) {
       fused_count++;
-      LOGS(logger, INFO) << "Fused reshape node: " << reshape.OutputDefs()[0]->Name();
+      LOGS(logger, INFO) << "Fused reshape node: " << reshape_output_name;
       modified = true;
     } else if (ReshapeFusion::FuseContiguousReshapes(reshape, graph)) {
       modified = true;

@@ -42,6 +42,9 @@
 #include "core/optimizer/expand_elimination.h"
 #include "core/optimizer/fast_gelu_fusion.h"
 #include "core/optimizer/free_dim_override_transformer.h"
+#if defined(__aarch64__)
+#include "core/optimizer/fused_tensordot_matmul_fusion.h"
+#endif
 #include "core/optimizer/gather_fusion.h"
 #include "core/optimizer/gelu_approximation.h"
 #include "core/optimizer/gelu_fusion.h"
@@ -269,6 +272,9 @@ InlinedVector<std::unique_ptr<GraphTransformer>> GenerateTransformers(
       transformers.emplace_back(std::make_unique<ConstantFolding>(cpu_execution_provider, skip_dequantize_linear,
                                                                   session_options.config_options));
       transformers.emplace_back(std::make_unique<MatMulAddFusion>());
+#if defined(__aarch64__)
+      transformers.emplace_back(std::make_unique<FusedTensordotMatMulFusion>());
+#endif
       transformers.emplace_back(std::make_unique<ReshapeFusion>());
       transformers.emplace_back(std::make_unique<FreeDimensionOverrideTransformer>(
           session_options.free_dimension_overrides));
