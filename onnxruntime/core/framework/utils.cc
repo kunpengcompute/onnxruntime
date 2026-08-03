@@ -4,6 +4,7 @@
 #include "core/framework/utils.h"
 
 #include <iomanip>
+#include <iostream>
 
 #include "core/graph/graph_viewer.h"
 #include "core/framework/data_transfer_manager.h"
@@ -17,6 +18,7 @@
 #include "core/framework/op_kernel_context_internal.h"
 #include "core/framework/session_state.h"
 #include "core/framework/sequential_executor.h"
+#include "core/framework/parallel_executor.h"
 #include "core/framework/tensorprotoutils.h"
 #include "core/mlas/inc/mlas.h"
 #include "core/framework/TensorSeq.h"
@@ -618,6 +620,26 @@ ExecuteGraphImpl(const SessionState& session_state,
   //    the parent kernel will occupy a thread in thread pool. if we use multiple threads to execute subgraph, it may cause
   //    deadlock when we reach the limitation of thread pool.
   bool single_thread_mode = execution_mode == ExecutionMode::ORT_SEQUENTIAL || is_subgraph;
+
+#ifdef __aarch64__
+  // When ORT_PARALLEL mode is enabled and no device copies are needed (e.g., pure CPU execution),
+  // use the ParallelExecutor which provides node-level parallelism based on reference counting.
+  // This enables inter-op parallelism for CPU-only graphs without requiring manual stream partitioning.
+  bool use_parallel_executor = (execution_mode == ExecutionMode::ORT_PARALLEL) &&
+                                !is_subgraph &&
+                                (device_copy_checks.status == DeviceCopyCheck::NoCopy) &&
+                                (session_state.GetInterOpThreadPool() != nullptr);
+
+  if (use_parallel_executor) {
+    ParallelExecutor par_executor(session_state, terminate_flag);
+    auto status = par_executor.Execute(session_state,
+                                       feeds_fetches_info.feeds_mlvalue_idxs, feeds,
+                                       feeds_fetches_info.fetches_mlvalue_idxs, fetches, fetch_allocators,
+                                       logger);
+    ORT_RETURN_IF_ERROR(status);
+    return Status::OK();
+  }
+#endif
 
   // see if we can skip copies due to the types of execution providers available
   if (device_copy_checks.status == DeviceCopyCheck::NoCopy) {

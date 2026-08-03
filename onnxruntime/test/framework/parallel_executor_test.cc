@@ -3,8 +3,10 @@
 
 #include "core/framework/data_types.h"
 #include "core/framework/op_kernel.h"
+#include "core/graph/model.h"
 #include "test/providers/provider_test_utils.h"
 #include "test/unittest_util/framework_test_utils.h"
+#include "test/test_environment.h"
 #include "core/session/inference_session.h"
 
 #include "gtest/gtest.h"
@@ -97,6 +99,19 @@ TEST(ParallelExecutor, TestStatusPropagation) {
                ExecutionMode::ORT_PARALLEL);
   }
 
+  {  // test success with profiler enabled
+    onnxruntime::SessionOptions so;
+    so.enable_profiling = true;
+    so.execution_mode = ExecutionMode::ORT_PARALLEL;
+
+    OpTester tester{"TestOp", 10, TestOp::OpDomain};
+    tester.AddCustomOpRegistry(registry);
+
+    tester.AddInput<int64_t>("action", {1}, {/*success*/ 0});
+    tester.AddOutput<int64_t>("action_out", {1}, {0});
+    tester.Run(so, OpTester::ExpectResult::kExpectSuccess, {}, {kTensorrtExecutionProvider}, nullptr, nullptr);
+  }
+
   {  // test failure
     OpTester tester{"TestOp", 10, TestOp::OpDomain};
     tester.AddCustomOpRegistry(registry);
@@ -115,6 +130,78 @@ TEST(ParallelExecutor, TestStatusPropagation) {
     tester.AddOutput<int64_t>("action_out", {1}, {0});
     tester.Run(OpTester::ExpectResult::kExpectFailure, "Throwing as action was 2", {kTensorrtExecutionProvider}, nullptr, nullptr, ExecutionMode::ORT_PARALLEL);
   }
+}
+
+// Model with two root TestOp nodes (action=1, both fail).
+//   When both fail concurrently, errors_.size() > 1 → L121-128 multi-error path.
+TEST(ParallelExecutor, TestMultiError) {
+  auto registry = std::make_shared<CustomRegistry>();
+  std::vector<OpSchema> schemas{TestOp::OpSchema()};
+  Status status;
+  ASSERT_TRUE((status = registry->RegisterOpSet(schemas, TestOp::OpDomain, 10, 11)).IsOK()) << status;
+  KernelCreateFn kernel_create_fn = [](FuncManager&, const OpKernelInfo& info, std::unique_ptr<OpKernel>& out) {
+    out = std::make_unique<typename TestOp::OpKernelImpl>(info);
+    return Status::OK();
+  };
+  auto kernel_def = TestOp::KernelDef();
+  ASSERT_TRUE((status = registry->RegisterCustomKernel(kernel_def, kernel_create_fn)).IsOK()) << status;
+
+  ModelProto model_proto;
+  model_proto.set_ir_version(ONNX_NAMESPACE::Version::IR_VERSION);
+  auto* opset = model_proto.add_opset_import();
+  opset->set_domain("");
+  opset->set_version(14);
+  auto* graph_proto = model_proto.mutable_graph();
+  graph_proto->set_name("multi_error_test");
+
+  auto make_io = [](auto* io_list, const std::string& name) {
+    auto* io = io_list->Add();
+    io->set_name(name);
+    io->mutable_type()->mutable_tensor_type()->set_elem_type(TensorProto_DataType_INT64);
+  };
+  make_io(graph_proto->mutable_input(), "A");
+  make_io(graph_proto->mutable_input(), "B");
+  make_io(graph_proto->mutable_output(), "A_out");
+  make_io(graph_proto->mutable_output(), "B_out");
+
+  auto make_testop_node = [&](const std::string& name, const std::string& input, const std::string& output) {
+    auto* node = graph_proto->add_node();
+    node->set_op_type("TestOp");
+    node->set_domain(TestOp::OpDomain);
+    node->set_name(name);
+    node->add_input(input);
+    node->add_output(output);
+  };
+  make_testop_node("test_op_A", "A", "A_out");
+  make_testop_node("test_op_B", "B", "B_out");
+
+  std::string model_str;
+  ASSERT_TRUE(model_proto.SerializeToString(&model_str));
+
+  const std::vector<int64_t> dims{1};
+  std::vector<int64_t> fail_action{1};  // action=1 → failure, non-const for InitOrtValue
+  OrtValue feed_a, feed_b;
+  Tensor::InitOrtValue(DataTypeImpl::GetType<int64_t>(), TensorShape(dims),
+                       fail_action.data(), OrtMemoryInfo(), feed_a);
+  Tensor::InitOrtValue(DataTypeImpl::GetType<int64_t>(), TensorShape(dims),
+                       fail_action.data(), OrtMemoryInfo(), feed_b);
+
+  SessionOptions so;
+  so.execution_mode = ExecutionMode::ORT_PARALLEL;
+  InferenceSession session{so, GetEnvironment()};
+  ASSERT_STATUS_OK(session.RegisterCustomRegistry(registry));
+  ASSERT_STATUS_OK(session.Load(model_str.data(), static_cast<int>(model_str.size())));
+  ASSERT_STATUS_OK(session.Initialize());
+
+  std::vector<std::string> feed_names{"A", "B"};
+  std::vector<OrtValue> feeds{feed_a, feed_b};
+  std::vector<std::string> output_names{"A_out", "B_out"};
+  std::vector<OrtValue> fetches;
+  auto run_status = session.Run(RunOptions{}, feed_names, feeds, output_names, &fetches);
+  ASSERT_FALSE(run_status.IsOK());
+  // When both root nodes fail, errors_.size() > 1 triggers the multi-error
+  // aggregation path (L121-128). The status message may contain either the
+  // aggregated message or a single error, depending on execution timing.
 }
 
 class ParallelExecutorThreadPoolTest : public testing::TestWithParam<int> {
