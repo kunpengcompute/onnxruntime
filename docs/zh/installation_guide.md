@@ -59,3 +59,9 @@
    ```bash
    sh ./build.sh --config Release --build_shared_lib --parallel --compile_no_warning_as_error --skip_submodule_sync --cmake_extra_defines CMAKE_OSX_ARCHITECTURES=arm64 --allow_running_as_root --skip-keras-test --skip_tests --build_wheel
    ```
+
+## 修订记录
+
+| 发布日期 | 修订记录 |
+| ---- | ---- |
+| 2026-09-30 | 第一次正式发布。 |

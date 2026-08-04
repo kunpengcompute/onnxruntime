@@ -42,3 +42,9 @@ sess_options = ort.SessionOptions()
 sess_options.execution_mode = ort.ExecutionMode.ORT_PARALLEL
 session = ort.InferenceSession("model.onnx", sess_options)
 ```
+
+## 修订记录
+
+| 发布日期 | 修订记录 |
+| ---- | ---- |
+| 2026-09-30 | 第一次正式发布。 |
