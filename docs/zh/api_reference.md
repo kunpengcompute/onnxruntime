@@ -6,15 +6,15 @@
 
 **表 1**  图优化特性开关<a id="graph-optimization-features"></a>
 
-| 接口名称                             | 接口类型   | 接口取值         | 接口功能                                  |
-| --------------------------------- | ---- | ---------- | ----------------------------------- |
+| 接口名称                              | 接口类型 | 接口取值       | 接口功能                                 |
+| --------------------------------- | ---- | ---------- | ------------------------------------ |
 | ORT_ENABLE_RM_LN_FUSION           | 环境变量 | 1：开启  0：关闭 | 用于开启KPLayerNormalization的图融合策略。      |
 | ORT_ENABLE_LAYER_NORM_NEON        | 环境变量 | 1：开启  0：关闭 | 用于开启KPLayerNormalization融合算子的Neon实现。 |
 | ORT_ENABLE_FUSED_TENSORDOT_MATMUL | 环境变量 | 1：开启  0：关闭 | 用于开启KPFusedTensordotMatmul的图融合策略。    |
 
 ## ONNX Runtime并行调度优化
 
-并行调度优化通过ONNX Runtime开源接口设置开启，默认为Sequential模式。
+并行调度优化通过ONNX Runtime开源接口设置开启，默认为Sequential模式（算子间按拓扑序串行执行每个节点，无并发），可通过设置`ExecutionMode`改为ORT_PARALLEL模式（多线程并行调度，无数据依赖的节点可同时在不同线程上执行）。
 
 **C API**
 
@@ -45,6 +45,6 @@ session = ort.InferenceSession("model.onnx", sess_options)
 
 ## 修订记录
 
-| 发布日期 | 修订记录 |
-| ---- | ---- |
+| 发布日期       | 修订记录     |
+| ---------- | -------- |
 | 2026-09-30 | 第一次正式发布。 |
