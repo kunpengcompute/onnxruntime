@@ -4018,6 +4018,91 @@ Having this op allows runtime to do operator re-ordering to reduce compute FLOPs
 
 #endif
 
+#if defined(USE_KDNN)
+  static const char* KdnnFusedAttention_doc = R"DOC(
+Internal fused scaled-dot-product multi-head attention backed by KDNN. This
+operator is produced by KdnnAttentionFusion and is not intended to be authored
+directly in user models.
+
+For each batch and head it computes:
+  scores = scale * Q . K^T
+  scores = scores + mask
+  probs  = softmax(scores, axis=Sk)
+  output = probs . V
+
+Q/K/V may use flattened [B, S, hidden] tensors or head-split [B, S, H, d]
+tensors. Their batch dimensions and the optional mask batch dimension follow
+ONNX multidirectional broadcasting. For head-split inputs, Sq must be 1 and
+output is [B, H, Sq, d]. The additive mask's intermediate singleton dimensions
+are broadcast over heads and query rows.
+)DOC";
+  ONNX_CONTRIB_OPERATOR_SCHEMA(KdnnFusedAttention)
+      .SetDomain(kKdnnDomain)
+      .SinceVersion(1)
+      .SetDoc(KdnnFusedAttention_doc)
+      .Attr("num_heads", "Number of attention heads.", AttributeProto::INT)
+      .Attr("scale",
+            "Scaling factor applied to Q.K^T before softmax. Default is 1/sqrt(head_size).",
+            AttributeProto::FLOAT, OPTIONAL_VALUE)
+      .Input(0, "query", "Query tensor with shape (B, Sq, hidden) or (B, Sq, H, d).", "T")
+      .Input(1, "key", "Key tensor with shape (B, Sk, hidden) or (B, Sk, H, d).", "T")
+      .Input(2, "value", "Value tensor with shape (B, Sk, hidden) or (B, Sk, H, d).", "T")
+      .Input(3, "mask", "Optional additive pre-softmax bias ending in kv_sequence_length.",
+             "T", OpSchema::Optional)
+      .Output(0, "output", "Output is (broadcast_B, Sq, hidden) or (broadcast_B, H, Sq, d).", "T")
+      .TypeConstraint("T", {"tensor(float)"}, "Constrain input and output to float tensors.")
+      .TypeAndShapeInferenceFunction([](ONNX_NAMESPACE::InferenceContext& ctx) {
+        propagateElemTypeFromInputToOutput(ctx, 0, 0);
+        if (hasInputShape(ctx, 0)) {
+          const auto& query_shape = getInputShape(ctx, 0);
+          if (query_shape.dim_size() == 3 || query_shape.dim_size() == 4) {
+            auto batch_dim = query_shape.dim(0);
+            auto merge_batch_dim = [&batch_dim](const auto& next) {
+              if (batch_dim.has_dim_value() && next.has_dim_value()) {
+                if (batch_dim.dim_value() == next.dim_value() || next.dim_value() == 1) {
+                  return;
+                }
+                if (batch_dim.dim_value() == 1) {
+                  batch_dim = next;
+                  return;
+                }
+                fail_shape_inference("KdnnFusedAttention batch dimensions are not broadcastable");
+              }
+              if (batch_dim.has_dim_value() && batch_dim.dim_value() == 1) {
+                batch_dim = next;
+              } else if (!(next.has_dim_value() && next.dim_value() == 1) &&
+                         !(batch_dim.has_dim_param() && next.has_dim_param() &&
+                           batch_dim.dim_param() == next.dim_param())) {
+                batch_dim.Clear();
+              }
+            };
+
+            if (hasInputShape(ctx, 1) && getInputShape(ctx, 1).dim_size() > 0) {
+              merge_batch_dim(getInputShape(ctx, 1).dim(0));
+            }
+            if (hasInputShape(ctx, 3) && getInputShape(ctx, 3).dim_size() > 0) {
+              merge_batch_dim(getInputShape(ctx, 3).dim(0));
+            }
+            if (hasInputShape(ctx, 2) && getInputShape(ctx, 2).dim_size() > 0) {
+              merge_batch_dim(getInputShape(ctx, 2).dim(0));
+            }
+
+            auto* output_shape =
+                ctx.getOutputType(0)->mutable_tensor_type()->mutable_shape();
+            *output_shape->add_dim() = batch_dim;
+            if (query_shape.dim_size() == 4) {
+              *output_shape->add_dim() = query_shape.dim(2);
+              *output_shape->add_dim() = query_shape.dim(1);
+              *output_shape->add_dim() = query_shape.dim(3);
+            } else {
+              *output_shape->add_dim() = query_shape.dim(1);
+              *output_shape->add_dim() = query_shape.dim(2);
+            }
+          }
+        }
+      });
+#endif
+
 #ifndef _OPSCHEMA_LIB_
   // Register the NCHWc schemas if supported by the platform.
   if (MlasNchwcGetBlockSize() > 1) {

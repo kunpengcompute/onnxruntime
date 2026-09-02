@@ -184,6 +184,10 @@ target_include_directories(onnxruntime_providers PRIVATE ${ONNXRUNTIME_ROOT})
 onnxruntime_add_include_to_target(onnxruntime_providers re2::re2 Eigen3::Eigen)
 add_dependencies(onnxruntime_providers onnx ${onnxruntime_EXTERNAL_DEPENDENCIES})
 
+if (onnxruntime_USE_KDNN)
+  target_include_directories(onnxruntime_providers PRIVATE ${KDNN_INCLUDE_DIR})
+endif()
+
 if (onnxruntime_ENABLE_TRAINING_OPS)
   target_include_directories(onnxruntime_providers PRIVATE ${ORTTRAINING_ROOT})
 endif()

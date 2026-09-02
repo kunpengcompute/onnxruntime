@@ -294,6 +294,9 @@ Status Environment::Initialize(std::unique_ptr<logging::LoggingManager> logging_
 // Register contributed schemas.
 // The corresponding kernels are registered inside the appropriate execution provider.
 #ifndef DISABLE_CONTRIB_OPS
+#if defined(USE_KDNN)
+      domainToVersionRangeInstance.AddDomainToVersion(onnxruntime::kKdnnDomain, 1, 1);
+#endif
       RegisterOpSetSchema<contrib::OpSet_Microsoft_ver1>();
       RegisterOpSetSchema<contrib::OpSet_ONNX_Deprecated>();
       // internal opset that has NHWC versions of ONNX operators

@@ -89,6 +89,7 @@ option(onnxruntime_USE_RKNPU "Build with RKNPU support" OFF)
 option(onnxruntime_USE_DNNL "Build with DNNL support" OFF)
 option(onnxruntime_USE_JSEP "Build with JavaScript implemented kernels support" OFF)
 option(onnxruntime_USE_SVE "Build with SVE support in MLAS" OFF)
+option(onnxruntime_USE_KDNN "Build with KDNN fused CPU operators" OFF)
 option(onnxruntime_USE_RVV "Build with RISC-V Vector support in MLAS" OFF)
 option(onnxruntime_USE_ARM_NEON_NCHWC "Build with ARM Neon NCHWc kernels in MLAS" OFF)
 
@@ -1674,6 +1675,29 @@ if ("${CMAKE_SYSTEM_NAME}" STREQUAL "Linux")
   else()
     list(APPEND onnxruntime_EXTERNAL_LIBRARIES rt)
   endif()
+endif()
+
+if (onnxruntime_USE_KDNN)
+  if (onnxruntime_DISABLE_CONTRIB_OPS)
+    message(FATAL_ERROR "onnxruntime_USE_KDNN requires contrib ops to be enabled")
+  endif()
+
+  set(KDNN_ROOT "${ONNXRUNTIME_ROOT}/core/kdnn" CACHE PATH "KDNN source and install root")
+  set(KDNN_INCLUDE_DIR "${KDNN_ROOT}/out/include" CACHE PATH "KDNN installed headers")
+  set(KDNN_LIBRARY "${KDNN_ROOT}/out/lib/libkdnn.so" CACHE FILEPATH "KDNN shared library")
+
+  if (NOT EXISTS "${KDNN_INCLUDE_DIR}/kdnn.hpp" OR NOT EXISTS "${KDNN_LIBRARY}")
+    message(FATAL_ERROR
+      "onnxruntime_USE_KDNN requires a prebuilt KDNN installation under ${KDNN_ROOT}/out. "
+      "Build the onnxruntime/core/kdnn submodule before configuring ONNX Runtime.")
+  endif()
+
+  add_library(onnxruntime_kdnn SHARED IMPORTED GLOBAL)
+  set_target_properties(onnxruntime_kdnn PROPERTIES
+    IMPORTED_LOCATION "${KDNN_LIBRARY}"
+    INTERFACE_INCLUDE_DIRECTORIES "${KDNN_INCLUDE_DIR}")
+  list(APPEND onnxruntime_EXTERNAL_LIBRARIES onnxruntime_kdnn)
+  add_compile_definitions(USE_KDNN=1)
 endif()
 
 # From this point on, onnxruntime_EXTERNAL_LIBRARIES should be no longer be modified. It will be used in
