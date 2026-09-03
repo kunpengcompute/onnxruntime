@@ -374,6 +374,44 @@ int FusedTensordotMatMulFusion::Fuse(Node& reshape, Graph& graph, const logging:
       continue;
     }
 
+    InlinedVector<int64_t> final_shape;
+    if (final_reshape_const.InputDefs().size() < 2 ||
+        !optimizer_utils::AppendTensorFromInitializer(graph, *final_reshape_const.InputDefs()[1],
+                                                      final_shape, true)) {
+      continue;
+    }
+
+    InlinedVector<int64_t> expected_shape;
+    expected_shape.reserve(free_info.axes.size() + 1);
+    for (const auto axis : free_info.axes) {
+      const auto& dim = input_shape->dim(gsl::narrow<int>(axis));
+      expected_shape.push_back(dim.has_dim_value() ? dim.dim_value() : -1);
+    }
+    expected_shape.push_back(weight->dims(1));
+
+    if (final_shape.size() != expected_shape.size()) {
+      continue;
+    }
+
+    bool shape_matches = true;
+    for (size_t i = 0; i < expected_shape.size(); ++i) {
+      const int64_t expected = expected_shape[i];
+      const int64_t actual = final_shape[i];
+      if (expected >= 0) {
+        if (actual != expected) {
+          shape_matches = false;
+          break;
+        }
+      } else if (actual != -1) {
+        shape_matches = false;
+        break;
+      }
+    }
+
+    if (!shape_matches) {
+      continue;
+    }
+
     Node* final_reshape = graph.GetNode(final_reshape_const.Index());
     if (final_reshape == nullptr) {
       continue;

@@ -45,6 +45,7 @@ class ParallelExecutor : public IExecutor {
   std::atomic<int> outstanding_count_{0};
   std::atomic<bool> terminate_seen_{false};
   std::atomic<bool> done_{false};
+  std::atomic<int> active_workers_{0};
 
   std::mutex queue_mutex_;
   std::condition_variable queue_cv_;

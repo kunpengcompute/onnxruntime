@@ -58,6 +58,7 @@ Status ParallelExecutor::Execute(const SessionState& session_state, gsl::span<co
   outstanding_count_.store(0, std::memory_order_relaxed);
   terminate_seen_.store(false, std::memory_order_relaxed);
   done_.store(false, std::memory_order_relaxed);
+  active_workers_.store(0, std::memory_order_relaxed);
   errors_.clear();
   ready_queue_.clear();
 
@@ -75,12 +76,16 @@ Status ParallelExecutor::Execute(const SessionState& session_state, gsl::span<co
 
   if (num_root_nodes == 0) {
     VLOGS(logger, 1) << "No root nodes to execute.";
+    ORT_RETURN_IF_ERROR(root_frame_->GetOutputs(fetches));
+    if (is_profiler_enabled) {
+      session_state.Profiler().EndTimeAndRecordEvent(profiling::SESSION_EVENT, "ParallelExecutor::Execute", tp);
+    }
     return Status::OK();
   }
 
   outstanding_count_.store(num_root_nodes, std::memory_order_relaxed);
 
-  int num_workers = std::min(num_root_nodes, concurrency::ThreadPool::DegreeOfParallelism(executor_pool_));
+  int num_workers = concurrency::ThreadPool::DegreeOfParallelism(executor_pool_);
 
   if (executor_pool_) {
     executor_pool_->DisableSpinning();
@@ -88,6 +93,8 @@ Status ParallelExecutor::Execute(const SessionState& session_state, gsl::span<co
   if (intra_op_pool_) {
     intra_op_pool_->DisableSpinning();
   }
+
+  active_workers_.store(num_workers, std::memory_order_relaxed);
 
   for (int i = 0; i < num_workers; ++i) {
     onnxruntime::concurrency::ThreadPool::Schedule(executor_pool_,
@@ -100,6 +107,9 @@ Status ParallelExecutor::Execute(const SessionState& session_state, gsl::span<co
     std::unique_lock<std::mutex> lock(queue_mutex_);
     queue_cv_.notify_all();
     while (!done_.load(std::memory_order_acquire) && !terminate_seen_.load(std::memory_order_acquire)) {
+      done_cv_.wait(lock);
+    }
+    while (active_workers_.load(std::memory_order_acquire) != 0) {
       done_cv_.wait(lock);
     }
   }
@@ -142,6 +152,7 @@ Status ParallelExecutor::Execute(const SessionState& session_state, gsl::span<co
 }
 
 void ParallelExecutor::WorkerLoop(const SessionState& session_state, const logging::Logger& logger) {
+  [&]() {
   const auto& graph_viewer = session_state.GetGraphViewer();
   constexpr int kSpinBeforeWait = 64;
 
@@ -228,6 +239,10 @@ void ParallelExecutor::WorkerLoop(const SessionState& session_state, const loggi
         return;
       }
 
+      if (terminate_seen_.load(std::memory_order_acquire)) {
+        return;
+      }
+
       if (newly_ready.empty()) {
         break;
       }
@@ -249,6 +264,13 @@ void ParallelExecutor::WorkerLoop(const SessionState& session_state, const loggi
         node_index = next_node;
       }
     }
+  }
+  }();
+
+  {
+    std::lock_guard<std::mutex> lock(queue_mutex_);
+    active_workers_.fetch_sub(1, std::memory_order_acq_rel);
+    done_cv_.notify_all();
   }
 }
 
