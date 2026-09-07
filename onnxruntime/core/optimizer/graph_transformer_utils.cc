@@ -22,6 +22,9 @@
 
 #include "core/mlas/inc/mlas.h"
 #include "core/optimizer/attention_fusion.h"
+#if defined(USE_KDNN)
+#include "core/optimizer/kdnn_attention_fusion.h"
+#endif
 #include "core/optimizer/bias_dropout_fusion.h"
 #include "core/optimizer/bias_gelu_fusion.h"
 #include "core/optimizer/bias_softmax_fusion.h"
@@ -42,6 +45,9 @@
 #include "core/optimizer/expand_elimination.h"
 #include "core/optimizer/fast_gelu_fusion.h"
 #include "core/optimizer/free_dim_override_transformer.h"
+#if defined(__aarch64__)
+#include "core/optimizer/fused_tensordot_matmul_fusion.h"
+#endif
 #include "core/optimizer/gather_fusion.h"
 #include "core/optimizer/gelu_approximation.h"
 #include "core/optimizer/gelu_fusion.h"
@@ -231,6 +237,12 @@ InlinedVector<std::unique_ptr<GraphTransformer>> GenerateTransformers(
       }
     } break;
     case TransformerLevel::Level1: {
+#if defined(USE_KDNN)
+      // Run before generic rewrites change the tf2onnx attention structure.
+      // The transformer remains runtime-gated by ORT_KDNN_FUSE_ATTENTION.
+      transformers.emplace_back(std::make_unique<KdnnAttentionFusion>(no_limit_empty_ep_list));
+#endif
+
       // RewriteRule optimizations are the simplest (they generally remove unnecessary nodes and are cheap to run)
       // so run them first so there is potentially less for the more intensive optimizations like ConstantFolding,
       // CommonSubexpressionElimination and TransposeOptimizer to do.
@@ -269,6 +281,9 @@ InlinedVector<std::unique_ptr<GraphTransformer>> GenerateTransformers(
       transformers.emplace_back(std::make_unique<ConstantFolding>(cpu_execution_provider, skip_dequantize_linear,
                                                                   session_options.config_options));
       transformers.emplace_back(std::make_unique<MatMulAddFusion>());
+#if defined(__aarch64__)
+      transformers.emplace_back(std::make_unique<FusedTensordotMatMulFusion>());
+#endif
       transformers.emplace_back(std::make_unique<ReshapeFusion>());
       transformers.emplace_back(std::make_unique<FreeDimensionOverrideTransformer>(
           session_options.free_dimension_overrides));

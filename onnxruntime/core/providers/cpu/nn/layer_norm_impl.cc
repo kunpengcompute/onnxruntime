@@ -7,14 +7,204 @@
 #include "core/common/safeint.h"
 #include "core/framework/tensor.h"
 #include "core/mlas/inc/mlas.h"
+#include "core/platform/env.h"
 #include "core/platform/threadpool.h"
 #include "core/providers/common.h"
 #include "core/util/force_inline.h"
 #include "core/util/math_cpuonly.h"
 
+#if defined(__aarch64__)
+#include <arm_neon.h>
+#endif
+
 namespace onnxruntime {
 
 namespace {
+
+#if defined(__aarch64__)
+bool IsLayerNormNeonEnabled() {
+  static const bool enabled = Env::Default().GetEnvironmentVar("ORT_ENABLE_LAYER_NORM_NEON") == "1";
+  return enabled;
+}
+
+template <typename U>
+void ComputeJobFloatNeon(
+    const float* X_data,
+    const float* scale_data,
+    const float* bias_data,
+    const ptrdiff_t task_idx,
+    const int64_t norm_size,
+    float epsilon,
+    bool simplified,
+    float* Y_data,
+    U* mean_data,
+    U* inv_std_dev_data) {
+  const float* p_input = X_data + task_idx * norm_size;
+  float* p_output = Y_data + task_idx * norm_size;
+
+  float32x4_t sum_vec0 = vdupq_n_f32(0.0f);
+  float32x4_t sum_vec1 = vdupq_n_f32(0.0f);
+  float32x4_t sum_vec2 = vdupq_n_f32(0.0f);
+  float32x4_t sum_vec3 = vdupq_n_f32(0.0f);
+  float32x4_t sum_square_vec0 = vdupq_n_f32(0.0f);
+  float32x4_t sum_square_vec1 = vdupq_n_f32(0.0f);
+  float32x4_t sum_square_vec2 = vdupq_n_f32(0.0f);
+  float32x4_t sum_square_vec3 = vdupq_n_f32(0.0f);
+
+  int64_t h = 0;
+  for (; h + 16 <= norm_size; h += 16) {
+    const float32x4_t x_vec0 = vld1q_f32(p_input + h);
+    const float32x4_t x_vec1 = vld1q_f32(p_input + h + 4);
+    const float32x4_t x_vec2 = vld1q_f32(p_input + h + 8);
+    const float32x4_t x_vec3 = vld1q_f32(p_input + h + 12);
+
+    sum_vec0 = vaddq_f32(sum_vec0, x_vec0);
+    sum_vec1 = vaddq_f32(sum_vec1, x_vec1);
+    sum_vec2 = vaddq_f32(sum_vec2, x_vec2);
+    sum_vec3 = vaddq_f32(sum_vec3, x_vec3);
+    sum_square_vec0 = vmlaq_f32(sum_square_vec0, x_vec0, x_vec0);
+    sum_square_vec1 = vmlaq_f32(sum_square_vec1, x_vec1, x_vec1);
+    sum_square_vec2 = vmlaq_f32(sum_square_vec2, x_vec2, x_vec2);
+    sum_square_vec3 = vmlaq_f32(sum_square_vec3, x_vec3, x_vec3);
+  }
+
+  for (; h + 4 <= norm_size; h += 4) {
+    const float32x4_t x_vec = vld1q_f32(p_input + h);
+    sum_vec0 = vaddq_f32(sum_vec0, x_vec);
+    sum_square_vec0 = vmlaq_f32(sum_square_vec0, x_vec, x_vec);
+  }
+
+  const float32x4_t sum_vec = vaddq_f32(vaddq_f32(sum_vec0, sum_vec1), vaddq_f32(sum_vec2, sum_vec3));
+  const float32x4_t sum_square_vec =
+      vaddq_f32(vaddq_f32(sum_square_vec0, sum_square_vec1), vaddq_f32(sum_square_vec2, sum_square_vec3));
+  float sum = vaddvq_f32(sum_vec);
+  float sum_square = vaddvq_f32(sum_square_vec);
+
+  for (; h < norm_size; ++h) {
+    const float x = p_input[h];
+    sum += x;
+    sum_square += x * x;
+  }
+
+  const float mean = sum / static_cast<float>(norm_size);
+  const float variance = simplified
+                             ? sum_square / static_cast<float>(norm_size) + epsilon
+                             : sum_square / static_cast<float>(norm_size) - mean * mean + epsilon;
+  const float inv_std_dev = 1.0f / std::sqrt(variance);
+
+  const float32x4_t mean_vec = vdupq_n_f32(mean);
+  const float32x4_t inv_std_dev_vec = vdupq_n_f32(inv_std_dev);
+
+  h = 0;
+  if (simplified) {
+    for (; h + 16 <= norm_size; h += 16) {
+      const float32x4_t scale_vec0 = vld1q_f32(scale_data + h);
+      const float32x4_t scale_vec1 = vld1q_f32(scale_data + h + 4);
+      const float32x4_t scale_vec2 = vld1q_f32(scale_data + h + 8);
+      const float32x4_t scale_vec3 = vld1q_f32(scale_data + h + 12);
+      const float32x4_t x_vec0 = vld1q_f32(p_input + h);
+      const float32x4_t x_vec1 = vld1q_f32(p_input + h + 4);
+      const float32x4_t x_vec2 = vld1q_f32(p_input + h + 8);
+      const float32x4_t x_vec3 = vld1q_f32(p_input + h + 12);
+
+      vst1q_f32(p_output + h, vmulq_f32(vmulq_f32(x_vec0, inv_std_dev_vec), scale_vec0));
+      vst1q_f32(p_output + h + 4, vmulq_f32(vmulq_f32(x_vec1, inv_std_dev_vec), scale_vec1));
+      vst1q_f32(p_output + h + 8, vmulq_f32(vmulq_f32(x_vec2, inv_std_dev_vec), scale_vec2));
+      vst1q_f32(p_output + h + 12, vmulq_f32(vmulq_f32(x_vec3, inv_std_dev_vec), scale_vec3));
+    }
+
+    for (; h + 4 <= norm_size; h += 4) {
+      const float32x4_t x_vec = vld1q_f32(p_input + h);
+      const float32x4_t scale_vec = vld1q_f32(scale_data + h);
+      const float32x4_t y_vec = vmulq_f32(vmulq_f32(x_vec, inv_std_dev_vec), scale_vec);
+      vst1q_f32(p_output + h, y_vec);
+    }
+
+    for (; h < norm_size; ++h) {
+      p_output[h] = p_input[h] * inv_std_dev * scale_data[h];
+    }
+  } else if (bias_data == nullptr) {
+    for (; h + 16 <= norm_size; h += 16) {
+      const float32x4_t scale_vec0 = vld1q_f32(scale_data + h);
+      const float32x4_t scale_vec1 = vld1q_f32(scale_data + h + 4);
+      const float32x4_t scale_vec2 = vld1q_f32(scale_data + h + 8);
+      const float32x4_t scale_vec3 = vld1q_f32(scale_data + h + 12);
+      const float32x4_t x_vec0 = vld1q_f32(p_input + h);
+      const float32x4_t x_vec1 = vld1q_f32(p_input + h + 4);
+      const float32x4_t x_vec2 = vld1q_f32(p_input + h + 8);
+      const float32x4_t x_vec3 = vld1q_f32(p_input + h + 12);
+
+      const float32x4_t normalized_vec0 = vmulq_f32(vsubq_f32(x_vec0, mean_vec), inv_std_dev_vec);
+      const float32x4_t normalized_vec1 = vmulq_f32(vsubq_f32(x_vec1, mean_vec), inv_std_dev_vec);
+      const float32x4_t normalized_vec2 = vmulq_f32(vsubq_f32(x_vec2, mean_vec), inv_std_dev_vec);
+      const float32x4_t normalized_vec3 = vmulq_f32(vsubq_f32(x_vec3, mean_vec), inv_std_dev_vec);
+
+      vst1q_f32(p_output + h, vmulq_f32(normalized_vec0, scale_vec0));
+      vst1q_f32(p_output + h + 4, vmulq_f32(normalized_vec1, scale_vec1));
+      vst1q_f32(p_output + h + 8, vmulq_f32(normalized_vec2, scale_vec2));
+      vst1q_f32(p_output + h + 12, vmulq_f32(normalized_vec3, scale_vec3));
+    }
+
+    for (; h + 4 <= norm_size; h += 4) {
+      const float32x4_t x_vec = vld1q_f32(p_input + h);
+      const float32x4_t scale_vec = vld1q_f32(scale_data + h);
+      const float32x4_t normalized_vec = vmulq_f32(vsubq_f32(x_vec, mean_vec), inv_std_dev_vec);
+      const float32x4_t y_vec = vmulq_f32(normalized_vec, scale_vec);
+      vst1q_f32(p_output + h, y_vec);
+    }
+
+    for (; h < norm_size; ++h) {
+      p_output[h] = (p_input[h] - mean) * inv_std_dev * scale_data[h];
+    }
+  } else {
+    for (; h + 16 <= norm_size; h += 16) {
+      const float32x4_t scale_vec0 = vld1q_f32(scale_data + h);
+      const float32x4_t scale_vec1 = vld1q_f32(scale_data + h + 4);
+      const float32x4_t scale_vec2 = vld1q_f32(scale_data + h + 8);
+      const float32x4_t scale_vec3 = vld1q_f32(scale_data + h + 12);
+      const float32x4_t bias_vec0 = vld1q_f32(bias_data + h);
+      const float32x4_t bias_vec1 = vld1q_f32(bias_data + h + 4);
+      const float32x4_t bias_vec2 = vld1q_f32(bias_data + h + 8);
+      const float32x4_t bias_vec3 = vld1q_f32(bias_data + h + 12);
+      const float32x4_t x_vec0 = vld1q_f32(p_input + h);
+      const float32x4_t x_vec1 = vld1q_f32(p_input + h + 4);
+      const float32x4_t x_vec2 = vld1q_f32(p_input + h + 8);
+      const float32x4_t x_vec3 = vld1q_f32(p_input + h + 12);
+
+      const float32x4_t normalized_vec0 = vmulq_f32(vsubq_f32(x_vec0, mean_vec), inv_std_dev_vec);
+      const float32x4_t normalized_vec1 = vmulq_f32(vsubq_f32(x_vec1, mean_vec), inv_std_dev_vec);
+      const float32x4_t normalized_vec2 = vmulq_f32(vsubq_f32(x_vec2, mean_vec), inv_std_dev_vec);
+      const float32x4_t normalized_vec3 = vmulq_f32(vsubq_f32(x_vec3, mean_vec), inv_std_dev_vec);
+
+      vst1q_f32(p_output + h, vmlaq_f32(bias_vec0, normalized_vec0, scale_vec0));
+      vst1q_f32(p_output + h + 4, vmlaq_f32(bias_vec1, normalized_vec1, scale_vec1));
+      vst1q_f32(p_output + h + 8, vmlaq_f32(bias_vec2, normalized_vec2, scale_vec2));
+      vst1q_f32(p_output + h + 12, vmlaq_f32(bias_vec3, normalized_vec3, scale_vec3));
+    }
+
+    for (; h + 4 <= norm_size; h += 4) {
+      const float32x4_t x_vec = vld1q_f32(p_input + h);
+      const float32x4_t scale_vec = vld1q_f32(scale_data + h);
+      const float32x4_t bias_vec = vld1q_f32(bias_data + h);
+      const float32x4_t normalized_vec = vmulq_f32(vsubq_f32(x_vec, mean_vec), inv_std_dev_vec);
+      const float32x4_t y_vec = vmlaq_f32(bias_vec, normalized_vec, scale_vec);
+      vst1q_f32(p_output + h, y_vec);
+    }
+
+    for (; h < norm_size; ++h) {
+      p_output[h] = (p_input[h] - mean) * inv_std_dev * scale_data[h] + bias_data[h];
+    }
+  }
+
+  if (mean_data != nullptr) {
+    mean_data[task_idx] = gsl::narrow_cast<float>(mean);
+  }
+
+  if (inv_std_dev_data != nullptr) {
+    inv_std_dev_data[task_idx] = gsl::narrow_cast<float>(inv_std_dev);
+  }
+}
+#endif
 
 template <typename T,
           typename U,
@@ -25,6 +215,8 @@ void ComputeJob(
     const T* bias_data,
     const ptrdiff_t task_idx,
     const int64_t norm_size,
+    const int64_t scale_size,
+    const int64_t bias_size,
     const int64_t broadcast_param,
     const float* scale_float_ptr,
     const float* bias_float_ptr,
@@ -37,6 +229,21 @@ void ComputeJob(
   ORT_UNUSED_PARAMETER(scale_float_ptr);  // only used in MLFloat16 overload
   ORT_UNUSED_PARAMETER(bias_float_ptr);   // only used in MLFloat16 overload
   ORT_UNUSED_PARAMETER(alloc);
+
+#if defined(__aarch64__)
+  if constexpr (std::is_same_v<T, float>) {
+    if (IsLayerNormNeonEnabled() &&
+        broadcast_param == 0 &&
+        scale_data != nullptr &&
+        norm_size >= 256 &&
+        scale_size == norm_size &&
+        (simplified || bias_data == nullptr || bias_size == norm_size)) {
+      ComputeJobFloatNeon(X_data, scale_data, bias_data, task_idx, norm_size, epsilon, simplified,
+                          Y_data, mean_data, inv_std_dev_data);
+      return;
+    }
+  }
+#endif
 
   const T* p_input = X_data + task_idx * norm_size;
   T* p_output = Y_data + task_idx * norm_size;
@@ -92,6 +299,8 @@ void ComputeJob(
     const MLFloat16* bias_data,
     const ptrdiff_t task_idx,
     const int64_t norm_size,
+    const int64_t scale_size,
+    const int64_t bias_size,
     const int64_t broadcast_param,
     const float* scale_float_ptr,
     const float* bias_float_ptr,
@@ -103,6 +312,8 @@ void ComputeJob(
     AllocatorPtr alloc) {
   ORT_UNUSED_PARAMETER(scale_data);  // only used in float/double overload
   ORT_UNUSED_PARAMETER(bias_data);   // only used in float/double overload
+  ORT_UNUSED_PARAMETER(scale_size);  // only used in float/double overload
+  ORT_UNUSED_PARAMETER(bias_size);   // only used in float/double overload
   ORT_UNUSED_PARAMETER(alloc);       // only required to create temporary float buffers
 
   // reinterpret input/output MLFloat16* as Eigen::half*
@@ -578,7 +789,8 @@ Status LayerNormImpl::ComputeWithoutContext(
                             epsilon, simplified, Y_data, mean_data, inv_std_dev_data);
         } else {
           ComputeJob(X_data, scale_data, bias_data, task_idx,
-                     params.norm_size, params.broadcast_param,
+                     params.norm_size, params.scale_size, params.bias_size,
+                     params.broadcast_param,
                      scf, bif,
                      epsilon, simplified, Y_data, mean_data, inv_std_dev_data, alloc);
         }
