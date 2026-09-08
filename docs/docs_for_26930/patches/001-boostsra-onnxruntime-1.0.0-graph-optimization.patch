@@ -1,8 +1,15 @@
 diff --git a/cmake/CMakeLists.txt b/cmake/CMakeLists.txt
-index 83d1751..1ce179a 100644
+index 83d1751..9ce376a 100644
 --- a/cmake/CMakeLists.txt
 +++ b/cmake/CMakeLists.txt
-@@ -89,6 +89,7 @@ option(onnxruntime_USE_RKNPU "Build with RKNPU support" OFF)
+@@ -1,3 +1,6 @@
++# Copyright (c) Huawei Technologies Co., Ltd. 2026.
++# Licensed under the MIT License.
++
+ # Copyright (c) Microsoft Corporation. All rights reserved.
+ # SPDX-FileCopyrightText: Copyright 2024 Arm Limited and/or its affiliates <open-source-office@arm.com>
+ # Licensed under the MIT License.
+@@ -89,6 +92,7 @@ option(onnxruntime_USE_RKNPU "Build with RKNPU support" OFF)
  option(onnxruntime_USE_DNNL "Build with DNNL support" OFF)
  option(onnxruntime_USE_JSEP "Build with JavaScript implemented kernels support" OFF)
  option(onnxruntime_USE_SVE "Build with SVE support in MLAS" OFF)
@@ -10,7 +17,7 @@ index 83d1751..1ce179a 100644
  option(onnxruntime_USE_RVV "Build with RISC-V Vector support in MLAS" OFF)
  option(onnxruntime_USE_ARM_NEON_NCHWC "Build with ARM Neon NCHWc kernels in MLAS" OFF)
  
-@@ -1676,6 +1677,29 @@ if ("${CMAKE_SYSTEM_NAME}" STREQUAL "Linux")
+@@ -1676,6 +1680,29 @@ if ("${CMAKE_SYSTEM_NAME}" STREQUAL "Linux")
    endif()
  endif()
  
@@ -41,10 +48,17 @@ index 83d1751..1ce179a 100644
  # onnxruntime.cmake which will be included next.
  
 diff --git a/cmake/onnxruntime_providers_cpu.cmake b/cmake/onnxruntime_providers_cpu.cmake
-index f6efcb3..10999eb 100644
+index f6efcb3..ae7d3af 100644
 --- a/cmake/onnxruntime_providers_cpu.cmake
 +++ b/cmake/onnxruntime_providers_cpu.cmake
-@@ -184,6 +184,10 @@ target_include_directories(onnxruntime_providers PRIVATE ${ONNXRUNTIME_ROOT})
+@@ -1,3 +1,6 @@
++# Copyright (c) Huawei Technologies Co., Ltd. 2026.
++# Licensed under the MIT License.
++
+ # Copyright (c) Microsoft Corporation. All rights reserved.
+ # Licensed under the MIT License.
+ 
+@@ -184,6 +187,10 @@ target_include_directories(onnxruntime_providers PRIVATE ${ONNXRUNTIME_ROOT})
  onnxruntime_add_include_to_target(onnxruntime_providers re2::re2 Eigen3::Eigen)
  add_dependencies(onnxruntime_providers onnx ${onnxruntime_EXTERNAL_DEPENDENCIES})
  
@@ -56,10 +70,17 @@ index f6efcb3..10999eb 100644
    target_include_directories(onnxruntime_providers PRIVATE ${ORTTRAINING_ROOT})
  endif()
 diff --git a/include/onnxruntime/core/graph/constants.h b/include/onnxruntime/core/graph/constants.h
-index e925692..dd9f926 100644
+index e925692..f69c408 100644
 --- a/include/onnxruntime/core/graph/constants.h
 +++ b/include/onnxruntime/core/graph/constants.h
-@@ -24,6 +24,7 @@ constexpr const char* kMSDmlDomain = "com.microsoft.dml";
+@@ -1,3 +1,6 @@
++// Copyright (c) Huawei Technologies Co., Ltd. 2026.
++// Licensed under the MIT License.
++
+ // Copyright (c) Microsoft Corporation. All rights reserved.
+ // Licensed under the MIT License.
+ 
+@@ -24,6 +27,7 @@ constexpr const char* kMSDmlDomain = "com.microsoft.dml";
  constexpr const char* kNGraphDomain = "com.intel.ai";
  constexpr const char* kMIGraphXDomain = "";
  constexpr const char* kVitisAIDomain = "com.xilinx";
@@ -68,10 +89,17 @@ index e925692..dd9f926 100644
  // This is moved from the OrtApis::GetAvailableProviders implementation
  // where it is enforced
 diff --git a/onnxruntime/contrib_ops/cpu/cpu_contrib_kernels.cc b/onnxruntime/contrib_ops/cpu/cpu_contrib_kernels.cc
-index cc652ed..d454645 100644
+index cc652ed..456dd24 100644
 --- a/onnxruntime/contrib_ops/cpu/cpu_contrib_kernels.cc
 +++ b/onnxruntime/contrib_ops/cpu/cpu_contrib_kernels.cc
-@@ -25,6 +25,9 @@ class ONNX_OPERATOR_TYPED_KERNEL_CLASS_NAME(kCpuExecutionProvider, kMSDomain, 1,
+@@ -1,3 +1,6 @@
++// Copyright (c) Huawei Technologies Co., Ltd. 2026.
++// Licensed under the MIT License.
++
+ // Copyright (c) Microsoft Corporation. All rights reserved.
+ // Licensed under the MIT License.
+ 
+@@ -25,6 +28,9 @@ class ONNX_OPERATOR_TYPED_KERNEL_CLASS_NAME(kCpuExecutionProvider, kMSDomain, 1,
  class ONNX_OPERATOR_TYPED_KERNEL_CLASS_NAME(kCpuExecutionProvider, kMSDomain, 1, float, GreedySearch);
  #endif
  class ONNX_OPERATOR_TYPED_KERNEL_CLASS_NAME(kCpuExecutionProvider, kMSDomain, 1, float, MultiHeadAttention);
@@ -81,7 +109,7 @@ index cc652ed..d454645 100644
  class ONNX_OPERATOR_TYPED_KERNEL_CLASS_NAME(kCpuExecutionProvider, kMSDomain, 1, float, GroupQueryAttention);
  class ONNX_OPERATOR_TYPED_KERNEL_CLASS_NAME(kCpuExecutionProvider, kMSDomain, 1, MLFloat16, GroupQueryAttention);
  class ONNX_OPERATOR_TYPED_KERNEL_CLASS_NAME(kCpuExecutionProvider, kMSDomain, 1, float, SparseAttention);
-@@ -44,6 +47,9 @@ class ONNX_OPERATOR_KERNEL_CLASS_NAME(kCpuExecutionProvider, kMSDomain, 1, Gathe
+@@ -44,6 +50,9 @@ class ONNX_OPERATOR_KERNEL_CLASS_NAME(kCpuExecutionProvider, kMSDomain, 1, Gathe
  class ONNX_OPERATOR_KERNEL_CLASS_NAME(kCpuExecutionProvider, kMSDomain, 1, TransposeMatMul);  // backward compatibility
  class ONNX_OPERATOR_TYPED_KERNEL_CLASS_NAME(kCpuExecutionProvider, kMSDomain, 1, float, FusedMatMul);
  class ONNX_OPERATOR_TYPED_KERNEL_CLASS_NAME(kCpuExecutionProvider, kMSDomain, 1, double, FusedMatMul);
@@ -91,7 +119,7 @@ index cc652ed..d454645 100644
  class ONNX_OPERATOR_TYPED_KERNEL_CLASS_NAME(kCpuExecutionProvider, kMSDomain, 1, float, MatMulNBits);
  class ONNX_OPERATOR_TYPED_KERNEL_CLASS_NAME(kCpuExecutionProvider, kMSDomain, 1, MLFloat16, MatMulNBits);
  class ONNX_OPERATOR_KERNEL_CLASS_NAME(kCpuExecutionProvider, kMSDomain, 1, MatMulBnb4);
-@@ -318,6 +324,9 @@ Status RegisterCpuContribKernels(KernelRegistry& kernel_registry) {
+@@ -318,6 +327,9 @@ Status RegisterCpuContribKernels(KernelRegistry& kernel_registry) {
        BuildKernelCreateInfo<ONNX_OPERATOR_TYPED_KERNEL_CLASS_NAME(kCpuExecutionProvider, kMSDomain, 1, float, GreedySearch)>,
  #endif
        BuildKernelCreateInfo<ONNX_OPERATOR_TYPED_KERNEL_CLASS_NAME(kCpuExecutionProvider, kMSDomain, 1, float, MultiHeadAttention)>,
@@ -101,7 +129,7 @@ index cc652ed..d454645 100644
        BuildKernelCreateInfo<ONNX_OPERATOR_TYPED_KERNEL_CLASS_NAME(kCpuExecutionProvider, kMSDomain, 1, float, GroupQueryAttention)>,
        BuildKernelCreateInfo<ONNX_OPERATOR_TYPED_KERNEL_CLASS_NAME(kCpuExecutionProvider, kMSDomain, 1, MLFloat16, GroupQueryAttention)>,
        BuildKernelCreateInfo<ONNX_OPERATOR_TYPED_KERNEL_CLASS_NAME(kCpuExecutionProvider, kMSDomain, 1, float, SparseAttention)>,
-@@ -344,6 +353,9 @@ Status RegisterCpuContribKernels(KernelRegistry& kernel_registry) {
+@@ -344,6 +356,9 @@ Status RegisterCpuContribKernels(KernelRegistry& kernel_registry) {
        // backward compatibility: TransposeMatMul is the old name for FusedMatMul
        BuildKernelCreateInfo<ONNX_OPERATOR_TYPED_KERNEL_CLASS_NAME(kCpuExecutionProvider, kMSDomain, 1, float, FusedMatMul)>,
        BuildKernelCreateInfo<ONNX_OPERATOR_TYPED_KERNEL_CLASS_NAME(kCpuExecutionProvider, kMSDomain, 1, double, FusedMatMul)>,
@@ -113,11 +141,11 @@ index cc652ed..d454645 100644
        BuildKernelCreateInfo<ONNX_OPERATOR_KERNEL_CLASS_NAME(kCpuExecutionProvider, kMSDomain, 1, MatMulBnb4)>,
 diff --git a/onnxruntime/contrib_ops/cpu/fused_tensordot_matmul.cc b/onnxruntime/contrib_ops/cpu/fused_tensordot_matmul.cc
 new file mode 100644
-index 0000000..7127442
+index 0000000..dee2de0
 --- /dev/null
 +++ b/onnxruntime/contrib_ops/cpu/fused_tensordot_matmul.cc
 @@ -0,0 +1,102 @@
-+// Copyright (c) Microsoft Corporation. All rights reserved.
++// Copyright (c) Huawei Technologies Co., Ltd. 2026.
 +// Licensed under the MIT License.
 +#if defined(__aarch64__)
 +
@@ -221,11 +249,11 @@ index 0000000..7127442
 +#endif  // defined(__aarch64__)
 diff --git a/onnxruntime/contrib_ops/cpu/fused_tensordot_matmul.h b/onnxruntime/contrib_ops/cpu/fused_tensordot_matmul.h
 new file mode 100644
-index 0000000..e6a53c9
+index 0000000..d877283
 --- /dev/null
 +++ b/onnxruntime/contrib_ops/cpu/fused_tensordot_matmul.h
 @@ -0,0 +1,25 @@
-+// Copyright (c) Microsoft Corporation. All rights reserved.
++// Copyright (c) Huawei Technologies Co., Ltd. 2026.
 +// Licensed under the MIT License.
 +
 +#pragma once
@@ -252,12 +280,12 @@ index 0000000..e6a53c9
 +}  // namespace onnxruntime
 diff --git a/onnxruntime/contrib_ops/cpu/kdnn/kdnn_fused_attention.cc b/onnxruntime/contrib_ops/cpu/kdnn/kdnn_fused_attention.cc
 new file mode 100644
-index 0000000..c48e6ae
+index 0000000..dc79b43
 --- /dev/null
 +++ b/onnxruntime/contrib_ops/cpu/kdnn/kdnn_fused_attention.cc
 @@ -0,0 +1,250 @@
-+// Copyright 2025 Huawei Technologies Co., Ltd.
-+// Licensed under the Apache License, Version 2.0.
++// Copyright (c) Huawei Technologies Co., Ltd. 2026.
++// Licensed under the MIT License.
 +
 +#if defined(USE_KDNN)
 +
@@ -508,12 +536,12 @@ index 0000000..c48e6ae
 +#endif  // USE_KDNN
 diff --git a/onnxruntime/contrib_ops/cpu/kdnn/kdnn_fused_attention.h b/onnxruntime/contrib_ops/cpu/kdnn/kdnn_fused_attention.h
 new file mode 100644
-index 0000000..62ca5ed
+index 0000000..e08496d
 --- /dev/null
 +++ b/onnxruntime/contrib_ops/cpu/kdnn/kdnn_fused_attention.h
 @@ -0,0 +1,27 @@
-+// Copyright 2025 Huawei Technologies Co., Ltd.
-+// Licensed under the Apache License, Version 2.0.
++// Copyright (c) Huawei Technologies Co., Ltd. 2026.
++// Licensed under the MIT License.
 +
 +#pragma once
 +
@@ -540,10 +568,17 @@ index 0000000..62ca5ed
 +}  // namespace contrib
 +}  // namespace onnxruntime
 diff --git a/onnxruntime/core/graph/contrib_ops/contrib_defs.cc b/onnxruntime/core/graph/contrib_ops/contrib_defs.cc
-index 5ccba67..ef732ec 100644
+index 5ccba67..c228710 100644
 --- a/onnxruntime/core/graph/contrib_ops/contrib_defs.cc
 +++ b/onnxruntime/core/graph/contrib_ops/contrib_defs.cc
-@@ -1906,6 +1906,41 @@ activation and leaky_relu_alpha.)DOC")
+@@ -1,3 +1,6 @@
++// Copyright (c) Huawei Technologies Co., Ltd. 2026.
++// Licensed under the MIT License.
++
+ // Copyright (c) Microsoft Corporation. All rights reserved.
+ // Licensed under the MIT License.
+ #include "core/graph/contrib_ops/contrib_defs.h"
+@@ -1906,6 +1909,41 @@ activation and leaky_relu_alpha.)DOC")
                                    }
                                  }));
  
@@ -585,7 +620,7 @@ index 5ccba67..ef732ec 100644
  ONNX_MS_OPERATOR_SET_SCHEMA(ExpandDims, 1,
                              OpSchema()
                                  .Input(0, "X", "input", "T")
-@@ -2235,6 +2270,12 @@ constexpr const char* FusedMatMulActivation_doc = R"DOC(
+@@ -2235,6 +2273,12 @@ constexpr const char* FusedMatMulActivation_doc = R"DOC(
  Executes the same operation as FusedMatMul, but also has an activation function fused to its output.
  )DOC";
  
@@ -598,7 +633,7 @@ index 5ccba67..ef732ec 100644
  ONNX_MS_OPERATOR_SET_SCHEMA(TransposeMatMul, 1,
                              OpSchema()
                                  .Input(0, "A", "N-dimensional matrix A", "T")
-@@ -2334,6 +2375,48 @@ ONNX_MS_OPERATOR_SET_SCHEMA(FusedMatMulActivation, 1,
+@@ -2334,6 +2378,48 @@ ONNX_MS_OPERATOR_SET_SCHEMA(FusedMatMulActivation, 1,
                                  .SetDoc(FusedMatMulActivation_doc)
                                  .TypeAndShapeInferenceFunction([](ONNX_NAMESPACE::InferenceContext& ctx) { FusedMatMulShapeInference(ctx); }));
  
@@ -647,7 +682,7 @@ index 5ccba67..ef732ec 100644
  ONNX_MS_OPERATOR_SET_SCHEMA(SparseToDenseMatMul, 1,
                              OpSchema()
                                  .Input(0, "A", "2-dimensional sparse matrix A. Either COO or CSR format", "T")
-@@ -3935,6 +4018,91 @@ Having this op allows runtime to do operator re-ordering to reduce compute FLOPs
+@@ -3935,6 +4021,91 @@ Having this op allows runtime to do operator re-ordering to reduce compute FLOPs
  
  #endif
  
@@ -740,10 +775,17 @@ index 5ccba67..ef732ec 100644
    // Register the NCHWc schemas if supported by the platform.
    if (MlasNchwcGetBlockSize() > 1) {
 diff --git a/onnxruntime/core/graph/contrib_ops/ms_opset.h b/onnxruntime/core/graph/contrib_ops/ms_opset.h
-index 59f97c2..a34459a 100644
+index 59f97c2..202b552 100644
 --- a/onnxruntime/core/graph/contrib_ops/ms_opset.h
 +++ b/onnxruntime/core/graph/contrib_ops/ms_opset.h
-@@ -61,6 +61,7 @@ class ONNX_OPERATOR_SET_SCHEMA_CLASS_NAME(Microsoft, 1, ComplexMulConj);
+@@ -1,3 +1,6 @@
++// Copyright (c) Huawei Technologies Co., Ltd. 2026.
++// Licensed under the MIT License.
++
+ // Copyright (c) Microsoft Corporation. All rights reserved.
+ // Licensed under the MIT License.
+ 
+@@ -61,6 +64,7 @@ class ONNX_OPERATOR_SET_SCHEMA_CLASS_NAME(Microsoft, 1, ComplexMulConj);
  class ONNX_OPERATOR_SET_SCHEMA_CLASS_NAME(Microsoft, 1, ConvTransposeWithDynamicPads);
  class ONNX_OPERATOR_SET_SCHEMA_CLASS_NAME(Microsoft, 1, CropAndResize);
  class ONNX_OPERATOR_SET_SCHEMA_CLASS_NAME(Microsoft, 1, DecoderAttention);
@@ -751,7 +793,7 @@ index 59f97c2..a34459a 100644
  class ONNX_OPERATOR_SET_SCHEMA_CLASS_NAME(Microsoft, 1, EmbedLayerNormalization);
  class ONNX_OPERATOR_SET_SCHEMA_CLASS_NAME(Microsoft, 1, ExpandDims);
  class ONNX_OPERATOR_SET_SCHEMA_CLASS_NAME(Microsoft, 1, FastGelu);
-@@ -68,6 +69,7 @@ class ONNX_OPERATOR_SET_SCHEMA_CLASS_NAME(Microsoft, 1, FusedConv);
+@@ -68,6 +72,7 @@ class ONNX_OPERATOR_SET_SCHEMA_CLASS_NAME(Microsoft, 1, FusedConv);
  class ONNX_OPERATOR_SET_SCHEMA_CLASS_NAME(Microsoft, 1, FusedGemm);
  class ONNX_OPERATOR_SET_SCHEMA_CLASS_NAME(Microsoft, 1, FusedMatMul);
  class ONNX_OPERATOR_SET_SCHEMA_CLASS_NAME(Microsoft, 1, FusedMatMulActivation);
@@ -759,7 +801,7 @@ index 59f97c2..a34459a 100644
  class ONNX_OPERATOR_SET_SCHEMA_CLASS_NAME(Microsoft, 1, GatherND);
  class ONNX_OPERATOR_SET_SCHEMA_CLASS_NAME(Microsoft, 1, Gelu);
  class ONNX_OPERATOR_SET_SCHEMA_CLASS_NAME(Microsoft, 1, QuickGelu);
-@@ -88,8 +90,6 @@ class ONNX_OPERATOR_SET_SCHEMA_CLASS_NAME(Microsoft, 1, QMoE);
+@@ -88,8 +93,6 @@ class ONNX_OPERATOR_SET_SCHEMA_CLASS_NAME(Microsoft, 1, QMoE);
  class ONNX_OPERATOR_SET_SCHEMA_CLASS_NAME(Microsoft, 1, MultiHeadAttention);
  class ONNX_OPERATOR_SET_SCHEMA_CLASS_NAME(Microsoft, 1, GroupQueryAttention);
  class ONNX_OPERATOR_SET_SCHEMA_CLASS_NAME(Microsoft, 1, PagedAttention);
@@ -768,7 +810,7 @@ index 59f97c2..a34459a 100644
  class ONNX_OPERATOR_SET_SCHEMA_CLASS_NAME(Microsoft, 1, MurmurHash3);
  class ONNX_OPERATOR_SET_SCHEMA_CLASS_NAME(Microsoft, 1, NGramRepeatBlock);
  class ONNX_OPERATOR_SET_SCHEMA_CLASS_NAME(Microsoft, 1, Pad);
-@@ -174,6 +174,7 @@ class OpSet_Microsoft_ver1 {
+@@ -174,6 +177,7 @@ class OpSet_Microsoft_ver1 {
      fn(GetOpSchema<ONNX_OPERATOR_SET_SCHEMA_CLASS_NAME(Microsoft, 1, ConvTransposeWithDynamicPads)>());
      fn(GetOpSchema<ONNX_OPERATOR_SET_SCHEMA_CLASS_NAME(Microsoft, 1, CropAndResize)>());
      fn(GetOpSchema<ONNX_OPERATOR_SET_SCHEMA_CLASS_NAME(Microsoft, 1, DecoderAttention)>());
@@ -776,7 +818,7 @@ index 59f97c2..a34459a 100644
      fn(GetOpSchema<ONNX_OPERATOR_SET_SCHEMA_CLASS_NAME(Microsoft, 1, EmbedLayerNormalization)>());
      fn(GetOpSchema<ONNX_OPERATOR_SET_SCHEMA_CLASS_NAME(Microsoft, 1, ExpandDims)>());
      fn(GetOpSchema<ONNX_OPERATOR_SET_SCHEMA_CLASS_NAME(Microsoft, 1, FastGelu)>());
-@@ -181,6 +182,7 @@ class OpSet_Microsoft_ver1 {
+@@ -181,6 +185,7 @@ class OpSet_Microsoft_ver1 {
      fn(GetOpSchema<ONNX_OPERATOR_SET_SCHEMA_CLASS_NAME(Microsoft, 1, FusedGemm)>());
      fn(GetOpSchema<ONNX_OPERATOR_SET_SCHEMA_CLASS_NAME(Microsoft, 1, FusedMatMul)>());
      fn(GetOpSchema<ONNX_OPERATOR_SET_SCHEMA_CLASS_NAME(Microsoft, 1, FusedMatMulActivation)>());
@@ -784,7 +826,7 @@ index 59f97c2..a34459a 100644
      fn(GetOpSchema<ONNX_OPERATOR_SET_SCHEMA_CLASS_NAME(Microsoft, 1, GatherND)>());
      fn(GetOpSchema<ONNX_OPERATOR_SET_SCHEMA_CLASS_NAME(Microsoft, 1, Gelu)>());
      fn(GetOpSchema<ONNX_OPERATOR_SET_SCHEMA_CLASS_NAME(Microsoft, 1, QuickGelu)>());
-@@ -201,8 +203,6 @@ class OpSet_Microsoft_ver1 {
+@@ -201,8 +206,6 @@ class OpSet_Microsoft_ver1 {
      fn(GetOpSchema<ONNX_OPERATOR_SET_SCHEMA_CLASS_NAME(Microsoft, 1, MultiHeadAttention)>());
      fn(GetOpSchema<ONNX_OPERATOR_SET_SCHEMA_CLASS_NAME(Microsoft, 1, GroupQueryAttention)>());
      fn(GetOpSchema<ONNX_OPERATOR_SET_SCHEMA_CLASS_NAME(Microsoft, 1, PagedAttention)>());
@@ -56537,11 +56579,11 @@ HcmV?d00001
 
 diff --git a/onnxruntime/core/optimizer/fused_tensordot_matmul_fusion.cc b/onnxruntime/core/optimizer/fused_tensordot_matmul_fusion.cc
 new file mode 100644
-index 0000000..e1fa89e
+index 0000000..9d2beb4
 --- /dev/null
 +++ b/onnxruntime/core/optimizer/fused_tensordot_matmul_fusion.cc
 @@ -0,0 +1,482 @@
-+// Copyright (c) Microsoft Corporation. All rights reserved.
++// Copyright (c) Huawei Technologies Co., Ltd. 2026.
 +// Licensed under the MIT License.
 +
 +#include "core/optimizer/fused_tensordot_matmul_fusion.h"
@@ -57025,11 +57067,11 @@ index 0000000..e1fa89e
 +}  // namespace onnxruntime
 diff --git a/onnxruntime/core/optimizer/fused_tensordot_matmul_fusion.h b/onnxruntime/core/optimizer/fused_tensordot_matmul_fusion.h
 new file mode 100644
-index 0000000..3ac9bee
+index 0000000..17f998a
 --- /dev/null
 +++ b/onnxruntime/core/optimizer/fused_tensordot_matmul_fusion.h
 @@ -0,0 +1,21 @@
-+// Copyright (c) Microsoft Corporation. All rights reserved.
++// Copyright (c) Huawei Technologies Co., Ltd. 2026.
 +// Licensed under the MIT License.
 +
 +#pragma once
@@ -57051,10 +57093,17 @@ index 0000000..3ac9bee
 +
 +}  // namespace onnxruntime
 diff --git a/onnxruntime/core/optimizer/graph_transformer_utils.cc b/onnxruntime/core/optimizer/graph_transformer_utils.cc
-index 6c06abe..94c8ff0 100644
+index 6c06abe..1af04a5 100644
 --- a/onnxruntime/core/optimizer/graph_transformer_utils.cc
 +++ b/onnxruntime/core/optimizer/graph_transformer_utils.cc
-@@ -22,6 +22,9 @@
+@@ -1,3 +1,6 @@
++// Copyright (c) Huawei Technologies Co., Ltd. 2026.
++// Licensed under the MIT License.
++
+ // Copyright (c) Microsoft Corporation. All rights reserved.
+ // SPDX-FileCopyrightText: Copyright 2024 Arm Limited and/or its affiliates <open-source-office@arm.com>
+ // Licensed under the MIT License.
+@@ -22,6 +25,9 @@
  
  #include "core/mlas/inc/mlas.h"
  #include "core/optimizer/attention_fusion.h"
@@ -57064,7 +57113,7 @@ index 6c06abe..94c8ff0 100644
  #include "core/optimizer/bias_dropout_fusion.h"
  #include "core/optimizer/bias_gelu_fusion.h"
  #include "core/optimizer/bias_softmax_fusion.h"
-@@ -42,6 +45,9 @@
+@@ -42,6 +48,9 @@
  #include "core/optimizer/expand_elimination.h"
  #include "core/optimizer/fast_gelu_fusion.h"
  #include "core/optimizer/free_dim_override_transformer.h"
@@ -57074,7 +57123,7 @@ index 6c06abe..94c8ff0 100644
  #include "core/optimizer/gather_fusion.h"
  #include "core/optimizer/gelu_approximation.h"
  #include "core/optimizer/gelu_fusion.h"
-@@ -231,6 +237,12 @@ InlinedVector<std::unique_ptr<GraphTransformer>> GenerateTransformers(
+@@ -231,6 +240,12 @@ InlinedVector<std::unique_ptr<GraphTransformer>> GenerateTransformers(
        }
      } break;
      case TransformerLevel::Level1: {
@@ -57087,7 +57136,7 @@ index 6c06abe..94c8ff0 100644
        // RewriteRule optimizations are the simplest (they generally remove unnecessary nodes and are cheap to run)
        // so run them first so there is potentially less for the more intensive optimizations like ConstantFolding,
        // CommonSubexpressionElimination and TransposeOptimizer to do.
-@@ -269,6 +281,9 @@ InlinedVector<std::unique_ptr<GraphTransformer>> GenerateTransformers(
+@@ -269,6 +284,9 @@ InlinedVector<std::unique_ptr<GraphTransformer>> GenerateTransformers(
        transformers.emplace_back(std::make_unique<ConstantFolding>(cpu_execution_provider, skip_dequantize_linear,
                                                                    session_options.config_options));
        transformers.emplace_back(std::make_unique<MatMulAddFusion>());
@@ -57099,12 +57148,12 @@ index 6c06abe..94c8ff0 100644
            session_options.free_dimension_overrides));
 diff --git a/onnxruntime/core/optimizer/kdnn_attention_fusion.cc b/onnxruntime/core/optimizer/kdnn_attention_fusion.cc
 new file mode 100644
-index 0000000..c80e4dd
+index 0000000..aabbc33
 --- /dev/null
 +++ b/onnxruntime/core/optimizer/kdnn_attention_fusion.cc
 @@ -0,0 +1,530 @@
-+// Copyright 2025 Huawei Technologies Co., Ltd.
-+// Licensed under the Apache License, Version 2.0.
++// Copyright (c) Huawei Technologies Co., Ltd. 2026.
++// Licensed under the MIT License.
 +
 +#include "core/optimizer/kdnn_attention_fusion.h"
 +
@@ -57635,12 +57684,12 @@ index 0000000..c80e4dd
 +}  // namespace onnxruntime
 diff --git a/onnxruntime/core/optimizer/kdnn_attention_fusion.h b/onnxruntime/core/optimizer/kdnn_attention_fusion.h
 new file mode 100644
-index 0000000..1d5cbff
+index 0000000..66d3859
 --- /dev/null
 +++ b/onnxruntime/core/optimizer/kdnn_attention_fusion.h
 @@ -0,0 +1,24 @@
-+// Copyright 2025 Huawei Technologies Co., Ltd.
-+// Licensed under the Apache License, Version 2.0.
++// Copyright (c) Huawei Technologies Co., Ltd. 2026.
++// Licensed under the MIT License.
 +
 +#pragma once
 +
@@ -57664,10 +57713,17 @@ index 0000000..1d5cbff
 +
 +}  // namespace onnxruntime
 diff --git a/onnxruntime/core/optimizer/layer_norm_fusion.cc b/onnxruntime/core/optimizer/layer_norm_fusion.cc
-index c10e070..cc199ec 100644
+index c10e070..12e924f 100644
 --- a/onnxruntime/core/optimizer/layer_norm_fusion.cc
 +++ b/onnxruntime/core/optimizer/layer_norm_fusion.cc
-@@ -6,7 +6,9 @@
+@@ -1,3 +1,6 @@
++// Copyright (c) Huawei Technologies Co., Ltd. 2026.
++// Licensed under the MIT License.
++
+ // Copyright (c) Microsoft Corporation. All rights reserved.
+ // Licensed under the MIT License.
+ #include "core/optimizer/initializer.h"
+@@ -6,7 +9,9 @@
  #include "core/optimizer/utils.h"
  #include "float.h"
  #include <algorithm>
@@ -57677,7 +57733,7 @@ index c10e070..cc199ec 100644
  
  using namespace ONNX_NAMESPACE;
  using namespace onnxruntime::common;
-@@ -60,6 +62,38 @@ static bool CheckAxesOnReduceMean(std::vector<int64_t>& axes_values, int64_t ran
+@@ -60,6 +65,38 @@ static bool CheckAxesOnReduceMean(std::vector<int64_t>& axes_values, int64_t ran
    return true;
  }
  
@@ -57716,7 +57772,7 @@ index c10e070..cc199ec 100644
  static std::vector<int64_t> GetAxesFromReduceMeanNode(Node& reduce_mean_node, const Graph& graph) {
    const onnxruntime::NodeAttributes& attributes = reduce_mean_node.GetAttributes();
    std::vector<int64_t> axes_values;
-@@ -78,6 +112,334 @@ static std::vector<int64_t> GetAxesFromReduceMeanNode(Node& reduce_mean_node, co
+@@ -78,6 +115,334 @@ static std::vector<int64_t> GetAxesFromReduceMeanNode(Node& reduce_mean_node, co
    return axes_values;
  };
  
@@ -58051,7 +58107,7 @@ index c10e070..cc199ec 100644
  /**
  Layer Normalization will fuse LayerNormalization into one node :
  +---------------------+
-@@ -157,6 +519,9 @@ Status LayerNormFusion::ApplyImpl(Graph& graph, bool& modified, int graph_level,
+@@ -157,6 +522,9 @@ Status LayerNormFusion::ApplyImpl(Graph& graph, bool& modified, int graph_level,
    GraphViewer graph_viewer(graph);
    const auto& node_topology_list = graph_viewer.GetNodesInTopologicalOrder();
    InlinedVector<std::reference_wrapper<Node>> nodes_to_remove;
@@ -58061,7 +58117,7 @@ index c10e070..cc199ec 100644
    for (auto node_index : node_topology_list) {
      nodes_to_remove.clear();
      auto* p_reduce_mean = graph.GetNode(node_index);
-@@ -175,6 +540,35 @@ Status LayerNormFusion::ApplyImpl(Graph& graph, bool& modified, int graph_level,
+@@ -175,6 +543,35 @@ Status LayerNormFusion::ApplyImpl(Graph& graph, bool& modified, int graph_level,
      }
      nodes_to_remove.push_back(reduce_mean_node);
  
@@ -58098,10 +58154,17 @@ index c10e070..cc199ec 100644
      int subCnt = 0;
      const Node* p_sub_node = nullptr;
 diff --git a/onnxruntime/core/optimizer/reshape_fusion.cc b/onnxruntime/core/optimizer/reshape_fusion.cc
-index 1679523..a1975f2 100644
+index 1679523..f7b7f33 100644
 --- a/onnxruntime/core/optimizer/reshape_fusion.cc
 +++ b/onnxruntime/core/optimizer/reshape_fusion.cc
-@@ -5,6 +5,9 @@
+@@ -1,3 +1,6 @@
++// Copyright (c) Huawei Technologies Co., Ltd. 2026.
++// Licensed under the MIT License.
++
+ // Copyright (c) Microsoft Corporation. All rights reserved.
+ // Licensed under the MIT License.
+ 
+@@ -5,6 +8,9 @@
  #include "core/optimizer/initializer.h"
  #include "core/optimizer/reshape_fusion.h"
  #include "core/optimizer/utils.h"
@@ -58111,7 +58174,7 @@ index 1679523..a1975f2 100644
  
  using namespace ONNX_NAMESPACE;
  using namespace onnxruntime::common;
-@@ -44,9 +47,10 @@ Status ReshapeFusion::ApplyImpl(Graph& graph, bool& modified, int graph_level, c
+@@ -44,9 +50,10 @@ Status ReshapeFusion::ApplyImpl(Graph& graph, bool& modified, int graph_level, c
        continue;
      }
  
@@ -58124,10 +58187,17 @@ index 1679523..a1975f2 100644
      } else if (ReshapeFusion::FuseContiguousReshapes(reshape, graph)) {
        modified = true;
 diff --git a/onnxruntime/core/providers/cpu/nn/layer_norm_impl.cc b/onnxruntime/core/providers/cpu/nn/layer_norm_impl.cc
-index 7dd9d99..eacc047 100644
+index 7dd9d99..87b9d1f 100644
 --- a/onnxruntime/core/providers/cpu/nn/layer_norm_impl.cc
 +++ b/onnxruntime/core/providers/cpu/nn/layer_norm_impl.cc
-@@ -7,15 +7,205 @@
+@@ -1,3 +1,6 @@
++// Copyright (c) Huawei Technologies Co., Ltd. 2026.
++// Licensed under the MIT License.
++
+ // Copyright (c) Microsoft Corporation. All rights reserved.
+ // Licensed under the MIT License.
+ 
+@@ -7,15 +10,205 @@
  #include "core/common/safeint.h"
  #include "core/framework/tensor.h"
  #include "core/mlas/inc/mlas.h"
@@ -58333,7 +58403,7 @@ index 7dd9d99..eacc047 100644
  template <typename T,
            typename U,
            typename = std::enable_if_t<std::is_same_v<T, float> || std::is_same_v<T, double>, void>>
-@@ -25,6 +215,8 @@ void ComputeJob(
+@@ -25,6 +218,8 @@ void ComputeJob(
      const T* bias_data,
      const ptrdiff_t task_idx,
      const int64_t norm_size,
@@ -58342,7 +58412,7 @@ index 7dd9d99..eacc047 100644
      const int64_t broadcast_param,
      const float* scale_float_ptr,
      const float* bias_float_ptr,
-@@ -38,6 +230,21 @@ void ComputeJob(
+@@ -38,6 +233,21 @@ void ComputeJob(
    ORT_UNUSED_PARAMETER(bias_float_ptr);   // only used in MLFloat16 overload
    ORT_UNUSED_PARAMETER(alloc);
  
@@ -58364,7 +58434,7 @@ index 7dd9d99..eacc047 100644
    const T* p_input = X_data + task_idx * norm_size;
    T* p_output = Y_data + task_idx * norm_size;
  
-@@ -92,6 +299,8 @@ void ComputeJob(
+@@ -92,6 +302,8 @@ void ComputeJob(
      const MLFloat16* bias_data,
      const ptrdiff_t task_idx,
      const int64_t norm_size,
@@ -58373,7 +58443,7 @@ index 7dd9d99..eacc047 100644
      const int64_t broadcast_param,
      const float* scale_float_ptr,
      const float* bias_float_ptr,
-@@ -103,6 +312,8 @@ void ComputeJob(
+@@ -103,6 +315,8 @@ void ComputeJob(
      AllocatorPtr alloc) {
    ORT_UNUSED_PARAMETER(scale_data);  // only used in float/double overload
    ORT_UNUSED_PARAMETER(bias_data);   // only used in float/double overload
@@ -58382,7 +58452,7 @@ index 7dd9d99..eacc047 100644
    ORT_UNUSED_PARAMETER(alloc);       // only required to create temporary float buffers
  
    // reinterpret input/output MLFloat16* as Eigen::half*
-@@ -578,7 +789,8 @@ Status LayerNormImpl::ComputeWithoutContext(
+@@ -578,7 +792,8 @@ Status LayerNormImpl::ComputeWithoutContext(
                              epsilon, simplified, Y_data, mean_data, inv_std_dev_data);
          } else {
            ComputeJob(X_data, scale_data, bias_data, task_idx,
@@ -58393,10 +58463,17 @@ index 7dd9d99..eacc047 100644
                       epsilon, simplified, Y_data, mean_data, inv_std_dev_data, alloc);
          }
 diff --git a/onnxruntime/core/session/environment.cc b/onnxruntime/core/session/environment.cc
-index 503aedb..e97fdb9 100644
+index 503aedb..d2f9b3a 100644
 --- a/onnxruntime/core/session/environment.cc
 +++ b/onnxruntime/core/session/environment.cc
-@@ -294,6 +294,9 @@ Status Environment::Initialize(std::unique_ptr<logging::LoggingManager> logging_
+@@ -1,3 +1,6 @@
++// Copyright (c) Huawei Technologies Co., Ltd. 2026.
++// Licensed under the MIT License.
++
+ // Copyright (c) Microsoft Corporation. All rights reserved.
+ // Licensed under the MIT License.
+ 
+@@ -294,6 +297,9 @@ Status Environment::Initialize(std::unique_ptr<logging::LoggingManager> logging_
  // Register contributed schemas.
  // The corresponding kernels are registered inside the appropriate execution provider.
  #ifndef DISABLE_CONTRIB_OPS
@@ -58408,11 +58485,11 @@ index 503aedb..e97fdb9 100644
        // internal opset that has NHWC versions of ONNX operators
 diff --git a/onnxruntime/test/optimizer/annc_opt_fused_tensordot_matmul_test.cc b/onnxruntime/test/optimizer/annc_opt_fused_tensordot_matmul_test.cc
 new file mode 100644
-index 0000000..6ff8d13
+index 0000000..53dcdbb
 --- /dev/null
 +++ b/onnxruntime/test/optimizer/annc_opt_fused_tensordot_matmul_test.cc
 @@ -0,0 +1,939 @@
-+// Copyright (c) Microsoft Corporation. All rights reserved.
++// Copyright (c) Huawei Technologies Co., Ltd. 2026.
 +// Licensed under the MIT License.
 +
 +#include <cstdlib>
@@ -59353,11 +59430,11 @@ index 0000000..6ff8d13
 +}  // namespace onnxruntime
 diff --git a/onnxruntime/test/optimizer/annc_opt_layer_norm_test.cc b/onnxruntime/test/optimizer/annc_opt_layer_norm_test.cc
 new file mode 100644
-index 0000000..82cc2b0
+index 0000000..a2390df
 --- /dev/null
 +++ b/onnxruntime/test/optimizer/annc_opt_layer_norm_test.cc
 @@ -0,0 +1,1071 @@
-+// Copyright (c) Microsoft Corporation. All rights reserved.
++// Copyright (c) Huawei Technologies Co., Ltd. 2026.
 +// Licensed under the MIT License.
 +
 +#include <cmath>
@@ -60430,11 +60507,11 @@ index 0000000..82cc2b0
 +}  // namespace onnxruntime
 diff --git a/onnxruntime/test/optimizer/kdnn_attention_fusion_test.cc b/onnxruntime/test/optimizer/kdnn_attention_fusion_test.cc
 new file mode 100644
-index 0000000..6d42e0a
+index 0000000..0ff03a3
 --- /dev/null
 +++ b/onnxruntime/test/optimizer/kdnn_attention_fusion_test.cc
 @@ -0,0 +1,318 @@
-+// Copyright 2026 Huawei Technologies Co., Ltd.
++// Copyright (c) Huawei Technologies Co., Ltd. 2026.
 +// Licensed under the MIT License.
 +
 +#if defined(USE_KDNN)

@@ -1,10 +1,10 @@
 diff --git a/onnxruntime/core/framework/parallel_executor.cc b/onnxruntime/core/framework/parallel_executor.cc
 new file mode 100644
-index 0000000000..70cb18a831
+index 0000000..e5883b9
 --- /dev/null
 +++ b/onnxruntime/core/framework/parallel_executor.cc
 @@ -0,0 +1,328 @@
-+// Copyright (c) Microsoft Corporation. All rights reserved.
++// Copyright (c) Huawei Technologies Co., Ltd. 2026.
 +// Licensed under the MIT License.
 +
 +#include <algorithm>
@@ -334,11 +334,11 @@ index 0000000000..70cb18a831
 +}  // namespace onnxruntime
 diff --git a/onnxruntime/core/framework/parallel_executor.h b/onnxruntime/core/framework/parallel_executor.h
 new file mode 100644
-index 0000000000..941fdcb898
+index 0000000..1b9e2ef
 --- /dev/null
 +++ b/onnxruntime/core/framework/parallel_executor.h
 @@ -0,0 +1,62 @@
-+// Copyright (c) Microsoft Corporation. All rights reserved.
++// Copyright (c) Huawei Technologies Co., Ltd. 2026.
 +// Licensed under the MIT License.
 +
 +#pragma once
@@ -401,10 +401,16 @@ index 0000000000..941fdcb898
 +};
 +}  // namespace onnxruntime
 diff --git a/onnxruntime/core/framework/utils.cc b/onnxruntime/core/framework/utils.cc
-index f1945de..f5ed332 100644
+index f1945de..70d74ad 100644
 --- a/onnxruntime/core/framework/utils.cc
 +++ b/onnxruntime/core/framework/utils.cc
-@@ -4,6 +4,7 @@
+@@ -1,9 +1,13 @@
++// Copyright (c) Huawei Technologies Co., Ltd. 2026.
++// Licensed under the MIT License.
++
+ // Copyright (c) Microsoft Corporation. All rights reserved.
+ // Licensed under the MIT License.
+ #include "core/graph/onnx_protobuf.h"
  #include "core/framework/utils.h"
  
  #include <iomanip>
@@ -412,7 +418,7 @@ index f1945de..f5ed332 100644
  
  #include "core/graph/graph_viewer.h"
  #include "core/framework/data_transfer_manager.h"
-@@ -17,6 +18,7 @@
+@@ -17,6 +21,7 @@
  #include "core/framework/op_kernel_context_internal.h"
  #include "core/framework/session_state.h"
  #include "core/framework/sequential_executor.h"
@@ -420,7 +426,7 @@ index f1945de..f5ed332 100644
  #include "core/framework/tensorprotoutils.h"
  #include "core/mlas/inc/mlas.h"
  #include "core/framework/TensorSeq.h"
-@@ -619,6 +621,26 @@ ExecuteGraphImpl(const SessionState& session_state,
+@@ -619,6 +624,26 @@ ExecuteGraphImpl(const SessionState& session_state,
    //    deadlock when we reach the limitation of thread pool.
    bool single_thread_mode = execution_mode == ExecutionMode::ORT_SEQUENTIAL || is_subgraph;
  
@@ -448,10 +454,13 @@ index f1945de..f5ed332 100644
    if (device_copy_checks.status == DeviceCopyCheck::NoCopy) {
      // no device copies are needed so simple execute
 diff --git a/onnxruntime/test/framework/parallel_executor_test.cc b/onnxruntime/test/framework/parallel_executor_test.cc
-index 2be13ec..6cdd6e5 100644
+index 2be13ec..761fa74 100644
 --- a/onnxruntime/test/framework/parallel_executor_test.cc
 +++ b/onnxruntime/test/framework/parallel_executor_test.cc
-@@ -1,10 +1,17 @@
+@@ -1,10 +1,20 @@
++// Copyright (c) Huawei Technologies Co., Ltd. 2026.
++// Licensed under the MIT License.
++
  // Copyright (c) Microsoft Corporation. All rights reserved.
  // Licensed under the MIT License.
  
@@ -469,7 +478,7 @@ index 2be13ec..6cdd6e5 100644
  #include "core/session/inference_session.h"
  
  #include "gtest/gtest.h"
-@@ -14,6 +21,9 @@ using namespace onnxruntime::common;
+@@ -14,6 +24,9 @@ using namespace onnxruntime::common;
  
  namespace onnxruntime {
  namespace test {
@@ -479,7 +488,7 @@ index 2be13ec..6cdd6e5 100644
  
  // Test kernel that will return success, or failure, or throw based on the input
  struct TestOp {
-@@ -55,6 +65,33 @@ struct TestOp {
+@@ -55,6 +68,33 @@ struct TestOp {
            status = ORT_MAKE_STATUS(ONNXRUNTIME, FAIL, "Action was ", *action);
            break;
          }
@@ -513,7 +522,7 @@ index 2be13ec..6cdd6e5 100644
          default: {
            ORT_THROW("Throwing as action was ", *action);
          }
-@@ -97,6 +134,19 @@ TEST(ParallelExecutor, TestStatusPropagation) {
+@@ -97,6 +137,19 @@ TEST(ParallelExecutor, TestStatusPropagation) {
                 ExecutionMode::ORT_PARALLEL);
    }
  
@@ -533,7 +542,7 @@ index 2be13ec..6cdd6e5 100644
    {  // test failure
      OpTester tester{"TestOp", 10, TestOp::OpDomain};
      tester.AddCustomOpRegistry(registry);
-@@ -117,6 +167,290 @@ TEST(ParallelExecutor, TestStatusPropagation) {
+@@ -117,6 +170,290 @@ TEST(ParallelExecutor, TestStatusPropagation) {
    }
  }
  
