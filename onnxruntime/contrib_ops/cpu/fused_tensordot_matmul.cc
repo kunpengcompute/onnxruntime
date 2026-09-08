@@ -1,4 +1,4 @@
-// Copyright (c) Microsoft Corporation. All rights reserved.
+// Copyright (c) Huawei Technologies Co., Ltd. 2026.
 // Licensed under the MIT License.
 #if defined(__aarch64__)
 

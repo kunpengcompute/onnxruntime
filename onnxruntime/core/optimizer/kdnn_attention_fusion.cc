@@ -1,5 +1,5 @@
-// Copyright 2025 Huawei Technologies Co., Ltd.
-// Licensed under the Apache License, Version 2.0.
+// Copyright (c) Huawei Technologies Co., Ltd. 2026.
+// Licensed under the MIT License.
 
 #include "core/optimizer/kdnn_attention_fusion.h"
 
