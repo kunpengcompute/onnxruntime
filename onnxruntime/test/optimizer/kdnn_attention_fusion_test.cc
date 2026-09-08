@@ -1,4 +1,4 @@
-// Copyright 2026 Huawei Technologies Co., Ltd.
+// Copyright (c) Huawei Technologies Co., Ltd. 2026.
 // Licensed under the MIT License.
 
 #if defined(USE_KDNN)
