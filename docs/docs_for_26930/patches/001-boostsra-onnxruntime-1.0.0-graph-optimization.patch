@@ -56579,10 +56579,10 @@ HcmV?d00001
 
 diff --git a/onnxruntime/core/optimizer/fused_tensordot_matmul_fusion.cc b/onnxruntime/core/optimizer/fused_tensordot_matmul_fusion.cc
 new file mode 100644
-index 0000000..9d2beb4
+index 0000000..ad410eb
 --- /dev/null
 +++ b/onnxruntime/core/optimizer/fused_tensordot_matmul_fusion.cc
-@@ -0,0 +1,482 @@
+@@ -0,0 +1,579 @@
 +// Copyright (c) Huawei Technologies Co., Ltd. 2026.
 +// Licensed under the MIT License.
 +
@@ -56786,6 +56786,80 @@ index 0000000..9d2beb4
 +         type_proto->tensor_type().elem_type() == ONNX_NAMESPACE::TensorProto_DataType_FLOAT;
 +}
 +
++static bool MatchDynamicFinalShape(const Graph& graph, const Node& final_reshape,
++                                   const NodeArg& original_input,
++                                   gsl::span<const int64_t> free_axes,
++                                   int64_t rank, int64_t n) {
++  const Node* shape_input = graph_utils::GetInputNode(final_reshape, 1);
++  if (shape_input == nullptr) {
++    return false;
++  }
++
++  if (graph_utils::IsSupportedOptypeVersionAndDomain(*shape_input, "Cast", {1, 6, 9, 13, 19, 21, 23, 24, 25})) {
++    const auto* to_attr = graph_utils::GetNodeAttribute(*shape_input, "to");
++    if (to_attr == nullptr || !to_attr->has_i() ||
++        to_attr->i() != ONNX_NAMESPACE::TensorProto_DataType_INT64) {
++      return false;
++    }
++    shape_input = graph_utils::GetInputNode(*shape_input, 0);
++  }
++
++  if (shape_input == nullptr ||
++      !graph_utils::IsSupportedOptypeVersionAndDomain(*shape_input, "Concat", {1, 4, 11, 13})) {
++    return false;
++  }
++
++  const auto* axis_attr = graph_utils::GetNodeAttribute(*shape_input, "axis");
++  if (axis_attr == nullptr || !axis_attr->has_i() || axis_attr->i() != 0 ||
++      shape_input->InputArgCount().front() != 2) {
++    return false;
++  }
++
++  const Node* gather = graph_utils::GetInputNode(*shape_input, 0);
++  if (gather == nullptr ||
++      !graph_utils::IsSupportedOptypeVersionAndDomain(*gather, "Gather", {1, 11, 13})) {
++    return false;
++  }
++
++  const auto* gather_axis_attr = graph_utils::GetNodeAttribute(*gather, "axis");
++  if (gather_axis_attr != nullptr && gather_axis_attr->has_i() && gather_axis_attr->i() != 0) {
++    return false;
++  }
++
++  InlinedVector<int64_t> gather_axes;
++  if (gather->InputDefs().size() < 2 ||
++      !optimizer_utils::AppendTensorFromInitializer(graph, *gather->InputDefs()[1], gather_axes, true) ||
++      gather_axes.size() != free_axes.size()) {
++    return false;
++  }
++
++  if (!NormalizeAxes(gather_axes, rank)) {
++    return false;
++  }
++
++  for (size_t i = 0; i < free_axes.size(); ++i) {
++    if (free_axes[i] != gather_axes[i]) {
++      return false;
++    }
++  }
++
++  const Node* shape = GetOptionalIntCastInputNode(*gather, 0);
++  if (shape == nullptr || !IsDefaultShapeNode(*shape) ||
++      shape->InputDefs().empty() || shape->InputDefs()[0] == nullptr ||
++      shape->InputDefs()[0]->Name() != original_input.Name()) {
++    return false;
++  }
++
++  InlinedVector<int64_t> n_values;
++  if (!optimizer_utils::AppendTensorFromInitializer(graph, *shape_input->InputDefs()[1], n_values, true) ||
++      n_values.size() != 1 ||
++      n_values[0] != n) {
++    return false;
++  }
++
++  return true;
++}
++
 +Status FusedTensordotMatMulFusion::ApplyImpl(Graph& graph, bool& modified, int graph_level,
 +                                             const logging::Logger& logger) const {
 +  if (!IsFusedTensordotMatMulEnabled()) {
@@ -56960,41 +57034,64 @@ index 0000000..9d2beb4
 +    }
 +
 +    InlinedVector<int64_t> final_shape;
-+    if (final_reshape_const.InputDefs().size() < 2 ||
-+        !optimizer_utils::AppendTensorFromInitializer(graph, *final_reshape_const.InputDefs()[1],
++    bool final_shape_is_dynamic = false;
++    if (final_reshape_const.InputDefs().size() < 2) {
++      continue;
++    }
++    if (!optimizer_utils::AppendTensorFromInitializer(graph, *final_reshape_const.InputDefs()[1],
 +                                                      final_shape, true)) {
-+      continue;
++      // The target shape is not a constant initializer; fall back to the dynamic
++      // reconstruction Concat(Gather(Shape(X), free_axes), [N]), which is the
++      // fused op's natural output and therefore a no-op reshape.
++      if (!MatchDynamicFinalShape(graph, final_reshape_const, *original_input,
++                                  free_info.axes, rank, weight->dims(1))) {
++        continue;
++      }
++      final_shape_is_dynamic = true;
 +    }
 +
-+    InlinedVector<int64_t> expected_shape;
-+    expected_shape.reserve(free_info.axes.size() + 1);
-+    for (const auto axis : free_info.axes) {
-+      const auto& dim = input_shape->dim(gsl::narrow<int>(axis));
-+      expected_shape.push_back(dim.has_dim_value() ? dim.dim_value() : -1);
-+    }
-+    expected_shape.push_back(weight->dims(1));
++    if (!final_shape_is_dynamic) {
++      InlinedVector<int64_t> expected_shape;
++      expected_shape.reserve(free_info.axes.size() + 1);
++      for (const auto axis : free_info.axes) {
++        const auto& dim = input_shape->dim(gsl::narrow<int>(axis));
++        expected_shape.push_back(dim.has_dim_value() ? dim.dim_value() : -1);
++      }
++      expected_shape.push_back(weight->dims(1));
 +
-+    if (final_shape.size() != expected_shape.size()) {
-+      continue;
-+    }
++      if (final_shape.size() != expected_shape.size()) {
++        continue;
++      }
 +
-+    bool shape_matches = true;
-+    for (size_t i = 0; i < expected_shape.size(); ++i) {
-+      const int64_t expected = expected_shape[i];
-+      const int64_t actual = final_shape[i];
-+      if (expected >= 0) {
-+        if (actual != expected) {
++      size_t num_dynamic_dims = 0;
++      bool pinning_is_sound = true;
++      for (const int64_t dim : expected_shape) {
++        if (dim == -1) {
++          ++num_dynamic_dims;
++        } else if (dim <= 0) {
++          pinning_is_sound = false;
++        }
++      }
++      pinning_is_sound = pinning_is_sound && num_dynamic_dims == 1;
++
++      bool shape_matches = true;
++      for (size_t i = 0; i < expected_shape.size(); ++i) {
++        const int64_t expected = expected_shape[i];
++        const int64_t actual = final_shape[i];
++        if (expected >= 0) {
++          if (actual != expected) {
++            shape_matches = false;
++            break;
++          }
++        } else if (actual != -1 && !(actual > 0 && pinning_is_sound)) {
 +          shape_matches = false;
 +          break;
 +        }
-+      } else if (actual != -1) {
-+        shape_matches = false;
-+        break;
 +      }
-+    }
 +
-+    if (!shape_matches) {
-+      continue;
++      if (!shape_matches) {
++        continue;
++      }
 +    }
 +
 +    Node* final_reshape = graph.GetNode(final_reshape_const.Index());
