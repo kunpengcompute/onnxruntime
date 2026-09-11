@@ -18,6 +18,7 @@ class FusedTensordotMatMul final : public OpKernel {
  private:
   InlinedVector<int64_t> free_axes_;
   InlinedVector<int64_t> contract_axes_;
+  InlinedVector<int64_t> final_shape_;
   MLAS_BACKEND_KERNEL_SELECTOR_CONFIG mlas_backend_kernel_selector_config_;
 };
 
