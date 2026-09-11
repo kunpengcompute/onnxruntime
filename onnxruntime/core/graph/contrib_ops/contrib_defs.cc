@@ -2388,6 +2388,13 @@ ONNX_MS_OPERATOR_SET_SCHEMA(FusedTensordotMatMul, 1,
                                 .Attr("contract_axes",
                                       "Axes reduced against W dimension 0. The CPU kernel currently supports one axis.",
                                       AttributeProto::INTS)
+                                .Attr("final_shape",
+                                      "Optional constant target shape of the final Reshape removed by the fusion. "
+                                      "When present, the kernel validates at runtime that the output can be reshaped "
+                                      "to this shape (at most one -1) and uses it as the output shape, preserving "
+                                      "the validation performed by the removed Reshape.",
+                                      AttributeProto::INTS,
+                                      OPTIONAL_VALUE)
                                 .Output(0, "Y", "Tensordot MatMul result.", "T")
                                 .TypeConstraint("T", {"tensor(float)"}, "Constrain input and output types to float tensors.")
                                 .SetDoc(FusedTensordotMatMul_doc)

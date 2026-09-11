@@ -455,9 +455,6 @@ int FusedTensordotMatMulFusion::Fuse(Node& reshape, Graph& graph, const logging:
     }
     if (!optimizer_utils::AppendTensorFromInitializer(graph, *final_reshape_const.InputDefs()[1],
                                                       final_shape, true)) {
-      // The target shape is not a constant initializer; fall back to the dynamic
-      // reconstruction Concat(Gather(Shape(X), free_axes), [N]), which is the
-      // fused op's natural output and therefore a no-op reshape.
       if (!MatchDynamicFinalShape(graph, final_reshape_const, *original_input,
                                   free_info.axes, rank, weight->dims(1))) {
         continue;
@@ -493,6 +490,10 @@ int FusedTensordotMatMulFusion::Fuse(Node& reshape, Graph& graph, const logging:
       for (size_t i = 0; i < expected_shape.size(); ++i) {
         const int64_t expected = expected_shape[i];
         const int64_t actual = final_shape[i];
+        if (actual != -1 && actual <= 0) {
+          shape_matches = false;
+          break;
+        }
         if (expected >= 0) {
           if (actual != expected) {
             shape_matches = false;
@@ -530,6 +531,19 @@ int FusedTensordotMatMulFusion::Fuse(Node& reshape, Graph& graph, const logging:
       contract_axes_attr.add_ints(axis);
     }
     attrs[contract_axes_attr.name()] = std::move(contract_axes_attr);
+
+    if (!final_shape_is_dynamic) {
+      // Preserve the validation performed by the removed final Reshape: the kernel
+      // checks that the output element count matches this shape and uses it as the
+      // output shape (inferring at most one -1).
+      ONNX_NAMESPACE::AttributeProto final_shape_attr;
+      final_shape_attr.set_name("final_shape");
+      final_shape_attr.set_type(ONNX_NAMESPACE::AttributeProto_AttributeType_INTS);
+      for (const int64_t dim : final_shape) {
+        final_shape_attr.add_ints(dim);
+      }
+      attrs[final_shape_attr.name()] = std::move(final_shape_attr);
+    }
 
     InlinedVector<NodeArg*> fused_inputs{const_cast<NodeArg*>(original_input), matmul->MutableInputDefs()[1]};
     InlinedVector<NodeArg*> fused_outputs{final_reshape->MutableOutputDefs()[0]};

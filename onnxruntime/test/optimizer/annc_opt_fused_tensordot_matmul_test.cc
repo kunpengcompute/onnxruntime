@@ -626,6 +626,88 @@ TEST(AnncOptFusedTensordotMatMulTest, RejectsContractDimMismatch) {
 #endif
 }
 
+TEST(AnncOptFusedTensordotMatMulTest, KernelRejectsFinalShapeMismatch) {
+  if (!HasSchema("FusedTensordotMatMul", kMSDomain)) {
+    GTEST_SKIP() << "FusedTensordotMatMul schema is available only after applying the ANNC optimization patch.";
+  }
+
+#if !defined(__aarch64__)
+  GTEST_SKIP() << "The ANNC FusedTensordotMatMul CPU kernel is registered only for AArch64.";
+#else
+  OpTester test("FusedTensordotMatMul", 1, kMSDomain);
+  test.AddAttribute("free_axes", std::vector<int64_t>{0, 1});
+  test.AddAttribute("contract_axes", std::vector<int64_t>{2});
+  test.AddAttribute("final_shape", std::vector<int64_t>{2, 3, 5});
+  test.AddInput<float>("X", {3, 3, 4}, std::vector<float>(36, 1.0f));
+  test.AddInput<float>("W", {4, 5}, std::vector<float>(20, 1.0f));
+  test.AddOutput<float>("Y", {3, 3, 5}, std::vector<float>(45, 0.0f));
+
+  std::vector<std::unique_ptr<IExecutionProvider>> execution_providers;
+  execution_providers.push_back(DefaultCpuExecutionProvider());
+  test.Run(OpTester::ExpectResult::kExpectFailure,
+           "FusedTensordotMatMul cannot reshape an output with 45 elements to the final Reshape target shape with 30 elements.",
+           {}, nullptr, &execution_providers);
+#endif
+}
+
+TEST(AnncOptFusedTensordotMatMulTest, KernelAppliesFinalShapeWithAllFixedDims) {
+  if (!HasSchema("FusedTensordotMatMul", kMSDomain)) {
+    GTEST_SKIP() << "FusedTensordotMatMul schema is available only after applying the ANNC optimization patch.";
+  }
+
+#if !defined(__aarch64__)
+  GTEST_SKIP() << "The ANNC FusedTensordotMatMul CPU kernel is registered only for AArch64.";
+#else
+  const std::vector<int64_t> x_shape{2, 3, 4};
+  const std::vector<int64_t> w_shape{4, 5};
+  const std::vector<float> x = MakeSequence(24, 0.25f, -1.0f);
+  const std::vector<float> w = MakeSequence(20, -0.05f, 0.5f);
+
+  OpTester test("FusedTensordotMatMul", 1, kMSDomain);
+  test.AddAttribute("free_axes", std::vector<int64_t>{0, 1});
+  test.AddAttribute("contract_axes", std::vector<int64_t>{2});
+  test.AddAttribute("final_shape", std::vector<int64_t>{2, 3, 5});
+  test.AddInput<float>("X", x_shape, x);
+  test.AddInput<float>("W", w_shape, w);
+  test.AddOutput<float>("Y", {2, 3, 5}, ComputeTensordotMatMulReference(x, x_shape, w, w_shape, {0, 1}));
+  test.SetOutputAbsErr("Y", 1e-5f);
+  test.SetOutputRelErr("Y", 1e-5f);
+
+  std::vector<std::unique_ptr<IExecutionProvider>> execution_providers;
+  execution_providers.push_back(DefaultCpuExecutionProvider());
+  test.Run(OpTester::ExpectResult::kExpectSuccess, "", {}, nullptr, &execution_providers);
+#endif
+}
+
+TEST(AnncOptFusedTensordotMatMulTest, KernelInfersNegativeOneInFinalShape) {
+  if (!HasSchema("FusedTensordotMatMul", kMSDomain)) {
+    GTEST_SKIP() << "FusedTensordotMatMul schema is available only after applying the ANNC optimization patch.";
+  }
+
+#if !defined(__aarch64__)
+  GTEST_SKIP() << "The ANNC FusedTensordotMatMul CPU kernel is registered only for AArch64.";
+#else
+  const std::vector<int64_t> x_shape{2, 3, 4};
+  const std::vector<int64_t> w_shape{4, 5};
+  const std::vector<float> x = MakeSequence(24, 0.125f, -0.5f);
+  const std::vector<float> w = MakeSequence(20, 0.05f, -0.75f);
+
+  OpTester test("FusedTensordotMatMul", 1, kMSDomain);
+  test.AddAttribute("free_axes", std::vector<int64_t>{0, 1});
+  test.AddAttribute("contract_axes", std::vector<int64_t>{2});
+  test.AddAttribute("final_shape", std::vector<int64_t>{-1, 3, 5});
+  test.AddInput<float>("X", x_shape, x);
+  test.AddInput<float>("W", w_shape, w);
+  test.AddOutput<float>("Y", {2, 3, 5}, ComputeTensordotMatMulReference(x, x_shape, w, w_shape, {0, 1}));
+  test.SetOutputAbsErr("Y", 1e-5f);
+  test.SetOutputRelErr("Y", 1e-5f);
+
+  std::vector<std::unique_ptr<IExecutionProvider>> execution_providers;
+  execution_providers.push_back(DefaultCpuExecutionProvider());
+  test.Run(OpTester::ExpectResult::kExpectSuccess, "", {}, nullptr, &execution_providers);
+#endif
+}
+
 TEST(AnncOptDynamicExpandTest, ShapeInferenceUsesShapeSourceDim0) {
   if (!HasSchema("DynamicExpand", kMSDomain)) {
     GTEST_SKIP() << "DynamicExpand schema is available only after applying the ANNC optimization patch.";
@@ -721,6 +803,45 @@ TEST(AnncOptFusedTensordotMatMulFusionTest, PositivePatternFusesAndKeepsOutputs)
     EXPECT_EQ(GetOpCount(op_count, "com.microsoft.FusedTensordotMatMul"), 1);
     EXPECT_EQ(GetOpCount(op_count, "MatMul"), 0);
     EXPECT_EQ(GetOpCount(op_count, "Reshape"), 0);
+  };
+
+  TransformerTester(build_test_case,
+                    check_transformed_graph,
+                    TransformerLevel::Default,
+                    TransformerLevel::Level1,
+                    18,
+                    1e-5,
+                    1e-5);
+}
+
+TEST(AnncOptFusedTensordotMatMulFusionTest, PositivePatternRecordsFinalShapeAttribute) {
+  ORT_ANNC_SKIP_IF_FUSED_TENSORDOT_MATMUL_DISABLED();
+
+  auto build_test_case = [](ModelTestBuilder& builder) {
+    BuildTensordotLoweringPattern(builder);
+  };
+
+  auto check_transformed_graph = [](InferenceSessionWrapper& session) {
+    const auto op_count = CountOpsInGraph(session.GetGraph());
+    EXPECT_EQ(GetOpCount(op_count, "com.microsoft.FusedTensordotMatMul"), 1);
+
+    const Graph& graph = session.GetGraph();
+    const ONNX_NAMESPACE::AttributeProto* final_shape_attr = nullptr;
+    for (const auto& node : graph.Nodes()) {
+      if (node.OpType() == "FusedTensordotMatMul") {
+        const auto& attrs = node.GetAttributes();
+        const auto it = attrs.find("final_shape");
+        ASSERT_NE(it, attrs.end());
+        final_shape_attr = &it->second;
+        break;
+      }
+    }
+    ASSERT_NE(final_shape_attr, nullptr);
+    const gsl::span<const int64_t> final_shape = final_shape_attr->ints();
+    ASSERT_EQ(final_shape.size(), 3U);
+    EXPECT_EQ(final_shape[0], 2);
+    EXPECT_EQ(final_shape[1], 3);
+    EXPECT_EQ(final_shape[2], 5);
   };
 
   TransformerTester(build_test_case,

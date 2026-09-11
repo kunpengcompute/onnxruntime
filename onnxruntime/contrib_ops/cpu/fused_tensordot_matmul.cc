@@ -22,6 +22,9 @@ ONNX_OPERATOR_KERNEL_EX(
 FusedTensordotMatMul::FusedTensordotMatMul(const OpKernelInfo& info) : OpKernel(info) {
   ORT_THROW_IF_ERROR(info.GetAttrs("free_axes", free_axes_));
   ORT_THROW_IF_ERROR(info.GetAttrs("contract_axes", contract_axes_));
+  if (!info.GetAttrs("final_shape", final_shape_).IsOK()) {
+    final_shape_.clear();
+  }
   SetupMlasBackendKernelSelectorFromConfigOptions(mlas_backend_kernel_selector_config_, info.GetConfigOptions());
 }
 
@@ -73,6 +76,46 @@ Status FusedTensordotMatMul::Compute(OpKernelContext* context) const {
   const int64_t k = weight_shape[0];
   const int64_t n = weight_shape[1];
   output_dims.push_back(n);
+
+  if (!final_shape_.empty()) {
+    size_t negative_dim_count = 0;
+    int64_t known_dim_product = 1;
+    for (const int64_t dim : final_shape_) {
+      if (dim == -1) {
+        ++negative_dim_count;
+      } else if (dim <= 0) {
+        return ORT_MAKE_STATUS(ONNXRUNTIME, INVALID_ARGUMENT,
+                               "FusedTensordotMatMul final_shape contains an invalid dimension: ", dim, ".");
+      } else {
+        known_dim_product *= dim;
+      }
+    }
+    ORT_RETURN_IF_NOT(negative_dim_count <= 1,
+                      "FusedTensordotMatMul final_shape may contain at most one -1, got ",
+                      negative_dim_count, ".");
+
+    const int64_t output_size = m * n;
+    if (negative_dim_count == 0) {
+      ORT_RETURN_IF_NOT(output_size == known_dim_product,
+                        "FusedTensordotMatMul cannot reshape an output with ", output_size,
+                        " elements to the final Reshape target shape with ", known_dim_product,
+                        " elements.");
+      output_dims = final_shape_;
+    } else {
+      ORT_RETURN_IF_NOT(output_size % known_dim_product == 0,
+                        "FusedTensordotMatMul cannot reshape an output with ", output_size,
+                        " elements to the final Reshape target shape with ", known_dim_product,
+                        " known elements.");
+      const int64_t inferred_dim = output_size / known_dim_product;
+      output_dims = final_shape_;
+      for (auto& dim : output_dims) {
+        if (dim == -1) {
+          dim = inferred_dim;
+          break;
+        }
+      }
+    }
+  }
 
   Tensor* output = context->Output(0, TensorShape(output_dims));
   if (output->Shape().Size() == 0) {
