@@ -48,11 +48,6 @@ Status FusedTensordotMatMul::Compute(OpKernelContext* context) const {
     }
   };
 
-  for (auto& axis : normalized_free_axes) {
-    normalize_axis(axis);
-    ORT_RETURN_IF_NOT(axis >= 0 && axis < rank, "free_axes contains an out-of-range axis.");
-  }
-
   for (auto& axis : normalized_contract_axes) {
     normalize_axis(axis);
     ORT_RETURN_IF_NOT(axis >= 0 && axis < rank, "contract_axes contains an out-of-range axis.");
@@ -61,6 +56,18 @@ Status FusedTensordotMatMul::Compute(OpKernelContext* context) const {
   const int64_t contract_axis = normalized_contract_axes[0];
   ORT_RETURN_IF_NOT(contract_axis == rank - 1,
                     "FusedTensordotMatMul currently requires the contract axis to be the last input dimension.");
+
+  for (auto& axis : normalized_free_axes) {
+    normalize_axis(axis);
+    ORT_RETURN_IF_NOT(axis >= 0 && axis < rank, "free_axes contains an out-of-range axis.");
+  }
+
+  ORT_RETURN_IF_NOT(normalized_free_axes.size() == static_cast<size_t>(rank - 1),
+                    "free_axes must cover every input dimension except the last contract dimension.");
+  for (size_t i = 0; i < normalized_free_axes.size(); ++i) {
+    ORT_RETURN_IF_NOT(normalized_free_axes[i] == static_cast<int64_t>(i),
+                      "free_axes must be the leading contiguous dimensions [0, 1, ..., rank-2].");
+  }
   ORT_RETURN_IF_NOT(input_shape[contract_axis] == weight_shape[0],
                     "Input contract dimension must match weight dimension 0.");
 
