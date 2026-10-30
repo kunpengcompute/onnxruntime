@@ -362,7 +362,7 @@ int main(int argc, char* argv[]) {
       std::wstring ort_model_file = model_file;
       if (model_file.substr(model_file.find_last_of(L".") + 1) == L"onnx") {
         ort_model_file = model_file + L".ort";
-        Ort::SessionOptions so;
+        auto so = onnxruntime::fuzzing::CreateSessionOptions();
         so.SetGraphOptimizationLevel(ORT_DISABLE_ALL);
         so.AddConfigEntry(kOrtSessionOptionsConfigSaveModelFormat, "ORT");
 #if defined(_WIN32) || defined(_WIN64)

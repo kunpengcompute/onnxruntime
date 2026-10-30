@@ -1266,6 +1266,12 @@ static std::shared_ptr<IExecutionProviderFactory> CreateExecutionProviderFactory
 
     return onnxruntime::CoreMLProviderFactoryCreator::Create(coreml_flags);
 #endif
+  } else if (type == kKdnnExecutionProvider) {
+#if defined(USE_KDNN_EP)
+    auto cit = provider_options_map.find(type);
+    return onnxruntime::KdnnProviderFactoryCreator::Create(
+        cit == provider_options_map.end() ? ProviderOptions{} : cit->second);
+#endif
   } else if (type == kXnnpackExecutionProvider) {
 #if defined(USE_XNNPACK)
     auto cit = provider_options_map.find(type);

@@ -92,6 +92,10 @@ endif()
 if(onnxruntime_USE_ACL)
   set(PROVIDERS_ACL onnxruntime_providers_acl)
 endif()
+if (onnxruntime_USE_KDNN)
+  set(PROVIDERS_KDNN onnxruntime_providers_kdnn)
+endif()
+
 if (onnxruntime_USE_XNNPACK)
   set(PROVIDERS_XNNPACK onnxruntime_providers_xnnpack)
 endif()
@@ -192,4 +196,11 @@ endif()
 
 if (onnxruntime_USE_AZURE)
   include(onnxruntime_providers_azure.cmake)
+endif()
+
+if (onnxruntime_USE_KDNN)
+  include(onnxruntime_providers_kdnn.cmake)
+else()
+  # The KDNN provider configuration is skipped when the EP is disabled.
+  file(REMOVE "${CMAKE_CURRENT_BINARY_DIR}/kdnn_coverage_sources.txt")
 endif()

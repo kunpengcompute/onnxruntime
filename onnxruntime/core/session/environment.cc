@@ -11,6 +11,9 @@
 #include "core/framework/error_code_helper.h"
 #include "core/framework/plugin_data_transfer.h"
 #include "core/graph/constants.h"
+#ifdef USE_KDNN_EP
+#include "core/providers/kdnn/schema/kdnn_defs.h"
+#endif
 #include "core/graph/op.h"
 #include "core/platform/device_discovery.h"
 #include "core/session/abi_session_options_impl.h"
@@ -294,6 +297,10 @@ Status Environment::Initialize(std::unique_ptr<logging::LoggingManager> logging_
 // Register contributed schemas.
 // The corresponding kernels are registered inside the appropriate execution provider.
 #ifndef DISABLE_CONTRIB_OPS
+#if defined(USE_KDNN_EP)
+      domainToVersionRangeInstance.AddDomainToVersion(onnxruntime::kKdnnDomain, 1, 2);
+      kdnn::RegisterKdnnSchemas();
+#endif
       RegisterOpSetSchema<contrib::OpSet_Microsoft_ver1>();
       RegisterOpSetSchema<contrib::OpSet_ONNX_Deprecated>();
       // internal opset that has NHWC versions of ONNX operators

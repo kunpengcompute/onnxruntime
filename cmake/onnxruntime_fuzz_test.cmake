@@ -79,6 +79,15 @@ if (onnxruntime_FUZZ_ENABLED)
     # add the dependencies
     add_dependencies(onnxruntime_security_fuzz onnx_proto onnxruntime protobuf-mutator ${PROTOBUF_LIB})
 
+    AddTest(TARGET onnxruntime_fuzz_session_test DYN
+        SOURCES "${SEC_FUZZ_ROOT}/fuzz_session_test.cc"
+                "${SEC_FUZZ_ROOT}/src/OnnxPrediction.cpp"
+                "${SEC_FUZZ_ROOT}/src/testlog.cpp"
+                "${TEST_SRC_DIR}/util/scoped_env_vars.cc"
+        LIBS GTest::gtest_main onnx_proto ${PROTOBUF_LIB} onnxruntime_common ${onnxruntime_EXTERNAL_LIBRARIES})
+    onnxruntime_add_include_to_target(onnxruntime_fuzz_session_test onnx onnxruntime)
+    target_include_directories(onnxruntime_fuzz_session_test PRIVATE ${INCLUDE_FILES})
+
     # copy the shared libraries (DLLs on Windows, SOs on Linux) to the execution directory
     add_custom_command(TARGET onnxruntime_security_fuzz POST_BUILD
         COMMAND ${CMAKE_COMMAND} -E copy_if_different $<TARGET_FILE:onnxruntime>  $<TARGET_FILE_DIR:onnxruntime_security_fuzz>

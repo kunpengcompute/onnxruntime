@@ -24,11 +24,13 @@ constexpr const char* kMSDmlDomain = "com.microsoft.dml";
 constexpr const char* kNGraphDomain = "com.intel.ai";
 constexpr const char* kMIGraphXDomain = "";
 constexpr const char* kVitisAIDomain = "com.xilinx";
+constexpr const char* kKdnnDomain = "com.kdnn.internal";
 
 // This is moved from the OrtApis::GetAvailableProviders implementation
 // where it is enforced
 constexpr size_t kMaxExecutionProviderNameLen = 30;
 
+constexpr const char* kKdnnExecutionProvider = "KDNNExecutionProvider";
 constexpr const char* kCpuExecutionProvider = "CPUExecutionProvider";
 constexpr const char* kCudaExecutionProvider = "CUDAExecutionProvider";
 constexpr const char* kCudaPluginExecutionProvider = "CudaPluginExecutionProvider";

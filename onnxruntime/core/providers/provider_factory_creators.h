@@ -78,6 +78,10 @@
 #include "core/providers/vitisai/vitisai_provider_factory_creator.h"
 #endif
 
+#if defined(USE_KDNN_EP)
+#include "core/providers/kdnn/kdnn_provider_factory_creator.h"
+#endif
+
 #if defined(USE_XNNPACK)
 #include "core/providers/xnnpack/xnnpack_provider_factory_creator.h"
 #endif

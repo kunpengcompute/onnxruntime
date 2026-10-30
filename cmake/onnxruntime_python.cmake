@@ -189,6 +189,7 @@ set(onnxruntime_pybind11_state_static_providers
     ${PROVIDERS_NNAPI}
     ${PROVIDERS_VSINPU}
     ${PROVIDERS_XNNPACK}
+    ${PROVIDERS_KDNN}
     ${PROVIDERS_COREML}
     ${PROVIDERS_RKNPU}
     ${PROVIDERS_DML}
@@ -1171,4 +1172,10 @@ if (onnxruntime_USE_VSINPU)
   )
 endif()
 
+endif()
+
+if (onnxruntime_USE_KDNN)
+  add_custom_command(TARGET onnxruntime_pybind11_state POST_BUILD
+    COMMAND ${CMAKE_COMMAND} -E copy_if_different ${KDNN_RUNTIME_LIBRARIES}
+      $<TARGET_FILE_DIR:${build_output_target}>/onnxruntime/capi/)
 endif()

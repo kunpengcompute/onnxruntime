@@ -269,6 +269,14 @@ std::unique_ptr<IExecutionProvider> QnnExecutionProviderWithOptions(const Provid
 #endif
 }
 
+std::unique_ptr<IExecutionProvider> DefaultKdnnExecutionProvider() {
+#ifdef USE_KDNN_EP
+  return KdnnProviderFactoryCreator::Create()->CreateProvider();
+#else
+  return nullptr;
+#endif
+}
+
 std::unique_ptr<IExecutionProvider> DefaultXnnpackExecutionProvider() {
 #ifdef USE_XNNPACK
   return XnnpackProviderFactoryCreator::Create(ProviderOptions(), nullptr)->CreateProvider();

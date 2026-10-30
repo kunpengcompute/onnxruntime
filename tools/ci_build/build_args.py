@@ -824,6 +824,9 @@ def add_execution_provider_args(parser: argparse.ArgumentParser) -> None:
         help="Specify the generator for WebGPU WGSL template generation.",
     )
 
+    kdnn_group = parser.add_argument_group("KDNN Execution Provider")
+    kdnn_group.add_argument("--use_kdnn", action="store_true", help="Enable the KDNN EP (Linux AArch64).")
+
     # --- XNNPACK ---
     xnn_group = parser.add_argument_group("XNNPACK Execution Provider")
     xnn_group.add_argument("--use_xnnpack", action="store_true", help="Enable XNNPACK EP.")

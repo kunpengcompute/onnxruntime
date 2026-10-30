@@ -94,6 +94,10 @@ if (onnxruntime_ENABLE_TRAINING_OPS)
   list(REMOVE_ITEM orttraining_graph_src ${orttraining_graph_src_exclude})
 endif()
 
+if (onnxruntime_USE_KDNN)
+  list(APPEND onnxruntime_graph_src "${ONNXRUNTIME_ROOT}/core/providers/kdnn/schema/kdnn_defs.cc")
+endif()
+
 onnxruntime_add_static_library(onnxruntime_graph ${onnxruntime_graph_src} ${orttraining_graph_src})
 add_dependencies(onnxruntime_graph onnx_proto flatbuffers::flatbuffers)
 onnxruntime_add_include_to_target(onnxruntime_graph onnxruntime_common ${WIL_TARGET} onnx onnx_proto ${PROTOBUF_LIB} flatbuffers::flatbuffers safeint_interface Boost::mp11)
