@@ -1,3 +1,6 @@
+// Copyright (c) Huawei Technologies Co., Ltd. 2026.
+// Licensed under the MIT License.
+
 // Copyright (c) Microsoft Corporation. All rights reserved.
 // Licensed under the MIT License.
 
@@ -151,6 +154,14 @@ constexpr ProviderInfo kProvidersInPriorityOrder[] =
         {
             kWebGpuExecutionProvider,
 #if defined(USE_WEBGPU) && !defined(ORT_USE_EP_API_ADAPTERS)
+            true,
+#else
+            false,
+#endif
+        },
+        {
+            kKdnnExecutionProvider,
+#ifdef USE_KDNN_EP
             true,
 #else
             false,

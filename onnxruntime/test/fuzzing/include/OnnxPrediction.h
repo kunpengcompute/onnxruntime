@@ -1,3 +1,6 @@
+// Copyright (c) Huawei Technologies Co., Ltd. 2026.
+// Licensed under the MIT License.
+
 // Copyright (c) Microsoft Corporation. All rights reserved.
 // Licensed under the MIT License.
 
@@ -24,6 +27,10 @@
 #include "onnxruntime_cxx_api.h"
 
 #include "testlog.h"
+
+namespace onnxruntime::fuzzing {
+Ort::SessionOptions CreateSessionOptions(bool is_ort_format = false);
+}  // namespace onnxruntime::fuzzing
 
 class OnnxPrediction {
   friend std::wostream& operator<<(std::wostream& out, OnnxPrediction& pred);
@@ -77,9 +84,9 @@ class OnnxPrediction {
                             });
 
     std::copy(raw_data.begin(), raw_data.end(), reinterpret_cast<T*>(input_data[curr_input_index].get()));
-    auto input_type = ptr_session->GetInputTypeInfo(curr_input_index);
-    auto shapeInfo = input_type.GetTensorTypeAndShapeInfo().GetShape();
-    auto elem_type = input_type.GetTensorTypeAndShapeInfo().GetElementType();
+    auto tensor_info = GetConcreteInputTensorInfo(curr_input_index);
+    auto shapeInfo = tensor_info.GetShape();
+    auto elem_type = tensor_info.GetElementType();
     if (elem_type == ONNX_TENSOR_ELEMENT_DATA_TYPE_FLOAT) {
       input_value = Ort::Value::CreateTensor(alloc.GetInfo(),
                                              input_data[curr_input_index].get(), data_size_in_bytes, shapeInfo.data(), shapeInfo.size(), elem_type);
@@ -129,6 +136,9 @@ class OnnxPrediction {
   //
   void init();
 
+  // Resolve dynamic dimensions consistently for data generation and tensor creation.
+  Ort::TensorTypeAndShapeInfo GetConcreteInputTensorInfo(size_t input_index) const;
+
   // Get the allocator used by the runtime
   //
   Ort::AllocatorWithDefaultOptions& GetAllocator();
@@ -140,7 +150,7 @@ class OnnxPrediction {
 
   // Create Options for the Session
   //
-  Ort::SessionOptions empty_session_option;
+  Ort::SessionOptions session_options = onnxruntime::fuzzing::CreateSessionOptions();
 
   // A pointer to the model
   //

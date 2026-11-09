@@ -1,3 +1,6 @@
+// Copyright (c) Huawei Technologies Co., Ltd. 2026.
+// Licensed under the MIT License.
+
 // Copyright (c) Microsoft Corporation. All rights reserved.
 // Licensed under the MIT License.
 
@@ -24,11 +27,13 @@ constexpr const char* kMSDmlDomain = "com.microsoft.dml";
 constexpr const char* kNGraphDomain = "com.intel.ai";
 constexpr const char* kMIGraphXDomain = "";
 constexpr const char* kVitisAIDomain = "com.xilinx";
+constexpr const char* kKdnnDomain = "com.kdnn.internal";
 
 // This is moved from the OrtApis::GetAvailableProviders implementation
 // where it is enforced
 constexpr size_t kMaxExecutionProviderNameLen = 30;
 
+constexpr const char* kKdnnExecutionProvider = "KDNNExecutionProvider";
 constexpr const char* kCpuExecutionProvider = "CPUExecutionProvider";
 constexpr const char* kCudaExecutionProvider = "CUDAExecutionProvider";
 constexpr const char* kCudaPluginExecutionProvider = "CudaPluginExecutionProvider";

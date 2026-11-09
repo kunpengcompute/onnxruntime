@@ -1,3 +1,6 @@
+// Copyright (c) Huawei Technologies Co., Ltd. 2026.
+// Licensed under the MIT License.
+
 // Copyright (c) Microsoft Corporation. All rights reserved.
 // Licensed under the MIT License.
 
@@ -93,6 +96,7 @@ ORT_API_STATUS_IMPL(OrtApis::SessionOptionsAppendExecutionProvider,
     QNN,
     OpenVINO,
     SNPE,  // TODO(adrianlizarraga): Remove SNPE entirely because it has been replaced by QNN EP.
+    KDNN,
     XNNPACK,
     WEBNN,
     WebGPU,
@@ -110,11 +114,12 @@ ORT_API_STATUS_IMPL(OrtApis::SessionOptionsAppendExecutionProvider,
     const char* canonical_name = nullptr;
   };
 
-  static std::array<EpToAppend, 13> supported_eps = {
+  static std::array<EpToAppend, 14> supported_eps = {
       EpToAppend{EpID::DML, "DML", kDmlExecutionProvider},
       EpToAppend{EpID::QNN, "QNN", kQnnExecutionProvider},
       EpToAppend{EpID::OpenVINO, "OpenVINO", kOpenVINOExecutionProvider},
       EpToAppend{EpID::SNPE, "SNPE", kSnpeExecutionProvider},
+      EpToAppend{EpID::KDNN, "KDNN", kKdnnExecutionProvider},
       EpToAppend{EpID::XNNPACK, "XNNPACK", kXnnpackExecutionProvider},
       EpToAppend{EpID::WEBNN, "WEBNN", kWebNNExecutionProvider},
       EpToAppend{EpID::WebGPU, "WebGPU", kWebGpuExecutionProvider},
@@ -233,6 +238,14 @@ ORT_API_STATUS_IMPL(OrtApis::SessionOptionsAppendExecutionProvider,
     case EpID::SNPE: {
 #if defined(USE_SNPE)
       options->provider_factories.push_back(SNPEProviderFactoryCreator::Create(provider_options));
+#else
+      status = create_not_supported_status();
+#endif
+      break;
+    }
+    case EpID::KDNN: {
+#if defined(USE_KDNN_EP)
+      options->provider_factories.push_back(KdnnProviderFactoryCreator::Create(provider_options));
 #else
       status = create_not_supported_status();
 #endif

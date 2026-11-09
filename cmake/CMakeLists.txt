@@ -1,3 +1,6 @@
+# Copyright (c) Huawei Technologies Co., Ltd. 2026.
+# Licensed under the MIT License.
+
 # Copyright (c) Microsoft Corporation. All rights reserved.
 # SPDX-FileCopyrightText: Copyright 2024 Arm Limited and/or its affiliates <open-source-office@arm.com>
 # Licensed under the MIT License.
@@ -89,6 +92,8 @@ option(onnxruntime_USE_RKNPU "Build with RKNPU support" OFF)
 option(onnxruntime_USE_DNNL "Build with DNNL support" OFF)
 option(onnxruntime_USE_JSEP "Build with JavaScript implemented kernels support" OFF)
 option(onnxruntime_USE_SVE "Build with SVE support in MLAS" OFF)
+option(onnxruntime_USE_KDNN "Build the KDNN execution provider" OFF)
+option(onnxruntime_KDNN_ENABLE_CPU_LEGACY "Keep KDNN acceleration in CPU FusedTensordotMatMul" ON)
 option(onnxruntime_USE_RVV "Build with RISC-V Vector support in MLAS" OFF)
 option(onnxruntime_USE_ARM_NEON_NCHWC "Build with ARM Neon NCHWc kernels in MLAS" OFF)
 
@@ -1674,6 +1679,36 @@ if ("${CMAKE_SYSTEM_NAME}" STREQUAL "Linux")
   else()
     list(APPEND onnxruntime_EXTERNAL_LIBRARIES rt)
   endif()
+endif()
+
+if (onnxruntime_USE_KDNN)
+  if (onnxruntime_MINIMAL_BUILD OR NOT CMAKE_SYSTEM_NAME STREQUAL "Linux" OR NOT CMAKE_SYSTEM_PROCESSOR MATCHES "^(aarch64|arm64|ARM64)$")
+    message(FATAL_ERROR "KDNN EP requires a full Linux AArch64 build and a KP950 THREADPOOL KDNN installation")
+  endif()
+  if (onnxruntime_DISABLE_CONTRIB_OPS)
+    message(FATAL_ERROR "onnxruntime_USE_KDNN requires contrib ops to be enabled")
+  endif()
+
+  set(KDNN_ROOT "${ONNXRUNTIME_ROOT}/core/kdnn" CACHE PATH "KDNN source and install root")
+  set(KDNN_INCLUDE_DIR "${KDNN_ROOT}/out/include" CACHE PATH "KDNN installed headers")
+  set(KDNN_LIBRARY "${KDNN_ROOT}/out/lib/libkdnn.so" CACHE FILEPATH "KDNN shared library")
+
+  if (NOT EXISTS "${KDNN_INCLUDE_DIR}/kdnn.hpp" OR NOT EXISTS "${KDNN_LIBRARY}")
+    message(FATAL_ERROR
+      "onnxruntime_USE_KDNN requires a prebuilt KDNN installation under ${KDNN_ROOT}/out. "
+      "Build the onnxruntime/core/kdnn submodule before configuring ONNX Runtime.")
+  endif()
+
+  add_library(onnxruntime_kdnn SHARED IMPORTED GLOBAL)
+  set_target_properties(onnxruntime_kdnn PROPERTIES
+    IMPORTED_LOCATION "${KDNN_LIBRARY}"
+    INTERFACE_INCLUDE_DIRECTORIES "${KDNN_INCLUDE_DIR}")
+  # Ship the SONAME and real file as well as the development symlink. Copying
+  # only libkdnn.so leaves a relocated package unable to resolve libkdnn.so.3.
+  get_filename_component(KDNN_LIBRARY_DIR "${KDNN_LIBRARY}" DIRECTORY)
+  file(GLOB KDNN_RUNTIME_LIBRARIES "${KDNN_LIBRARY_DIR}/libkdnn.so*")
+  list(APPEND onnxruntime_EXTERNAL_LIBRARIES onnxruntime_kdnn)
+  add_compile_definitions(USE_KDNN_EP=1)
 endif()
 
 # From this point on, onnxruntime_EXTERNAL_LIBRARIES should be no longer be modified. It will be used in

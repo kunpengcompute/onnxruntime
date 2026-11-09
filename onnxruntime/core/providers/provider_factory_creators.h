@@ -1,3 +1,6 @@
+// Copyright (c) Huawei Technologies Co., Ltd. 2026.
+// Licensed under the MIT License.
+
 // Copyright (c) Microsoft Corporation. All rights reserved.
 // Licensed under the MIT License.
 
@@ -76,6 +79,10 @@
 
 #if defined(USE_VITISAI) || defined(USE_VITISAI_PROVIDER_INTERFACE)
 #include "core/providers/vitisai/vitisai_provider_factory_creator.h"
+#endif
+
+#if defined(USE_KDNN_EP)
+#include "core/providers/kdnn/kdnn_provider_factory_creator.h"
 #endif
 
 #if defined(USE_XNNPACK)

@@ -1,3 +1,6 @@
+// Copyright (c) Huawei Technologies Co., Ltd. 2026.
+// Licensed under the MIT License.
+
 // Copyright (c) Microsoft Corporation. All rights reserved.
 // Licensed under the MIT License.
 
@@ -68,9 +71,13 @@ static PostProcessor<onnx::ModelProto> reg1 = {
       model_proto->set_producer_version("7.0");
       model_proto->set_domain("example.com");
 
-      // Add a dummy opset import
-      auto* opset_import = model_proto->add_opset_import();
-      opset_import->set_version(10);
+      // Preserve valid seed opsets: appending version 10 to an opset-13
+      // attention graph prevents it from reaching the KDNN fusion matcher.
+      bool has_onnx_opset = false;
+      for (const auto& opset : model_proto->opset_import()) {
+        has_onnx_opset |= opset.domain().empty() || opset.domain() == "ai.onnx";
+      }
+      if (!has_onnx_opset) model_proto->add_opset_import()->set_version(13);
 
       // Access the graph from the model
       auto* graph = model_proto->mutable_graph();

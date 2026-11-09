@@ -1,4 +1,7 @@
 # ------------------------------------------------------------------------
+# Copyright (c) Huawei Technologies Co., Ltd. 2026.
+# Licensed under the MIT License.
+
 # Copyright (c) Microsoft Corporation. All rights reserved.
 # Licensed under the MIT License.
 # ------------------------------------------------------------------------
@@ -363,6 +366,7 @@ if platform.system() == "Linux" or platform.system() == "AIX":
     libs = [
         "onnxruntime_pybind11_state.so",
         "libdnnl.so.2",
+        "libkdnn.so*",
         "libmklml_intel.so",
         "libmklml_gnu.so",
         "libiomp5.so",
@@ -375,6 +379,7 @@ if platform.system() == "Linux" or platform.system() == "AIX":
     dl_libs.append(providers_cann)
     dl_libs.append(providers_qnn)
     dl_libs.append("libonnxruntime.so*")
+    dl_libs.append("libkdnn.so*")
     # DNNL, TensorRT, OpenVINO, and QNN EPs are built as shared libs
     libs.extend(["libonnxruntime_providers_shared.so"])
     libs.extend(["libonnxruntime_providers_dnnl.so"])

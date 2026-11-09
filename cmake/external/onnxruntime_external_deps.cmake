@@ -1,3 +1,6 @@
+# Copyright (c) Huawei Technologies Co., Ltd. 2026.
+# Licensed under the MIT License.
+
 # Copyright (c) Microsoft Corporation. All rights reserved.
 # Licensed under the MIT License.
 
@@ -545,6 +548,19 @@ onnxruntime_fetchcontent_declare(
 )
 
 onnxruntime_fetchcontent_makeavailable(onnx)
+
+# Conv shape-inference hardening (upstream onnx PR 8037): overwrite the
+# fetched sources with fixed copies. Full-file replacement at configure
+# time is idempotent in every build directory, unlike PATCH_COMMAND
+# changes, which re-run patch steps against already-patched trees and
+# fail with "previously applied" rejects. The vendored files are based on
+# onnx v1.21.0; old.cc also carries the GroupNormalization-18
+# de-deprecation from onnx.patch, so it stays consistent with the patch
+# step above. Re-run CMake after editing the vendored sources.
+file(COPY
+  "${PROJECT_SOURCE_DIR}/patches/onnx/vendor/onnx/defs/nn/defs.cc"
+  "${PROJECT_SOURCE_DIR}/patches/onnx/vendor/onnx/defs/nn/old.cc"
+  DESTINATION "${onnx_SOURCE_DIR}/onnx/defs/nn")
 
 if(TARGET ONNX::onnx AND NOT TARGET onnx)
   message(STATUS "Aliasing ONNX::onnx to onnx")

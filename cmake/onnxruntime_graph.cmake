@@ -1,3 +1,6 @@
+# Copyright (c) Huawei Technologies Co., Ltd. 2026.
+# Licensed under the MIT License.
+
 # Copyright (c) Microsoft Corporation. All rights reserved.
 # Licensed under the MIT License.
 
@@ -92,6 +95,10 @@ list(REMOVE_ITEM onnxruntime_graph_src ${onnxruntime_graph_src_exclude})
 if (onnxruntime_ENABLE_TRAINING_OPS)
   file(GLOB orttraining_graph_src_exclude ${orttraining_graph_src_exclude_patterns})
   list(REMOVE_ITEM orttraining_graph_src ${orttraining_graph_src_exclude})
+endif()
+
+if (onnxruntime_USE_KDNN)
+  list(APPEND onnxruntime_graph_src "${ONNXRUNTIME_ROOT}/core/providers/kdnn/schema/kdnn_defs.cc")
 endif()
 
 onnxruntime_add_static_library(onnxruntime_graph ${onnxruntime_graph_src} ${orttraining_graph_src})

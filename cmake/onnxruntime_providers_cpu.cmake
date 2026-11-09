@@ -1,3 +1,6 @@
+# Copyright (c) Huawei Technologies Co., Ltd. 2026.
+# Licensed under the MIT License.
+
 # Copyright (c) Microsoft Corporation. All rights reserved.
 # Licensed under the MIT License.
 
@@ -183,6 +186,11 @@ endif()
 target_include_directories(onnxruntime_providers PRIVATE ${ONNXRUNTIME_ROOT})
 onnxruntime_add_include_to_target(onnxruntime_providers re2::re2 Eigen3::Eigen)
 add_dependencies(onnxruntime_providers onnx ${onnxruntime_EXTERNAL_DEPENDENCIES})
+
+if (onnxruntime_USE_KDNN AND onnxruntime_KDNN_ENABLE_CPU_LEGACY)
+  target_compile_definitions(onnxruntime_providers PRIVATE USE_KDNN=1)
+  target_include_directories(onnxruntime_providers PRIVATE ${KDNN_INCLUDE_DIR})
+endif()
 
 if (onnxruntime_ENABLE_TRAINING_OPS)
   target_include_directories(onnxruntime_providers PRIVATE ${ORTTRAINING_ROOT})

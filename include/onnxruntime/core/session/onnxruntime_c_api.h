@@ -1,3 +1,6 @@
+// Copyright (c) Huawei Technologies Co., Ltd. 2026.
+// Licensed under the MIT License.
+
 // Copyright (c) Microsoft Corporation. All rights reserved.
 // Licensed under the MIT License.
 
@@ -4186,6 +4189,7 @@ struct OrtApi {
    *   QNNExecutionProvider (or QNN)
    *   OpenVINOExecutionProvider (or OpenVINO)
    *   XnnpackExecutionProvider (or XNNPACK)
+   *   KDNNExecutionProvider (or KDNN)
    *   WebNNExecutionProvider (or WEBNN)
    *   WebGpuExecutionProvider (or WebGPU)
    *   AzureExecutionProvider (or AZURE)
@@ -4195,6 +4199,12 @@ struct OrtApi {
    *
    * Note: If an execution provider has a dedicated SessionOptionsAppendExecutionProvider_<provider name> function
    *       that should be used to add it.
+   *
+   * KDNN supported keys (requires a KDNN-enabled Linux AArch64 build):
+   *   "enable_attention_fusion": "0" or "1" (default). New fusion also requires
+   *      graph optimization level ORT_ENABLE_EXTENDED or higher.
+   *   "attention_algorithm": "auto" (default), "classic", or "classic_no_pack".
+   *      Explicit options override legacy environment variables at EP creation.
    *
    * QNN supported keys:
    *   "backend_type": Type of QNN backend. Specifies a backend path that is the associated QNN backend library file

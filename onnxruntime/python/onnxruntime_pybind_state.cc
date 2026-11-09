@@ -1,3 +1,6 @@
+// Copyright (c) Huawei Technologies Co., Ltd. 2026.
+// Licensed under the MIT License.
+
 // Copyright (c) Microsoft Corporation. All rights reserved.
 // SPDX-FileCopyrightText: Copyright 2024 Arm Limited and/or its affiliates <open-source-office@arm.com>
 // Licensed under the MIT License.
@@ -1265,6 +1268,12 @@ static std::shared_ptr<IExecutionProviderFactory> CreateExecutionProviderFactory
     }
 
     return onnxruntime::CoreMLProviderFactoryCreator::Create(coreml_flags);
+#endif
+  } else if (type == kKdnnExecutionProvider) {
+#if defined(USE_KDNN_EP)
+    auto cit = provider_options_map.find(type);
+    return onnxruntime::KdnnProviderFactoryCreator::Create(
+        cit == provider_options_map.end() ? ProviderOptions{} : cit->second);
 #endif
   } else if (type == kXnnpackExecutionProvider) {
 #if defined(USE_XNNPACK)

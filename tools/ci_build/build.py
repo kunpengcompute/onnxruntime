@@ -1,4 +1,7 @@
 #!/usr/bin/env python3
+# Copyright (c) Huawei Technologies Co., Ltd. 2026.
+# Licensed under the MIT License.
+
 # Copyright (c) Microsoft Corporation. All rights reserved.
 # SPDX-FileCopyrightText: Copyright 2024 Arm Limited and/or its affiliates <open-source-office@arm.com>
 # Licensed under the MIT License.
@@ -501,6 +504,7 @@ def generate_build_tree(
         "-Donnxruntime_ENABLE_WEBASSEMBLY_PROFILING=" + ("ON" if args.enable_wasm_profiling else "OFF"),
         "-Donnxruntime_ENABLE_LAZY_TENSOR=" + ("ON" if args.enable_lazy_tensor else "OFF"),
         "-Donnxruntime_ENABLE_CUDA_PROFILING=" + ("ON" if args.enable_cuda_profiling else "OFF"),
+        "-Donnxruntime_USE_KDNN=" + ("ON" if args.use_kdnn else "OFF"),
         "-Donnxruntime_USE_XNNPACK=" + ("ON" if args.use_xnnpack else "OFF"),
         "-Donnxruntime_USE_WEBNN=" + ("ON" if args.use_webnn else "OFF"),
         "-Donnxruntime_USE_CANN=" + ("ON" if args.use_cann else "OFF"),
@@ -1720,6 +1724,8 @@ def run_onnxruntime_tests(args, source_dir, ctest_path, build_dir, configs):
 
         if not ctest_path and not is_windows():
             executables = ["onnxruntime_test_all", "onnxruntime_mlas_test", "onnxruntime_provider_test"]
+            if args.use_kdnn:
+                executables.append("onnxruntime_kdnn_test")
             if args.build_shared_lib:
                 executables.append("onnxruntime_shared_lib_test")
                 executables.append("onnxruntime_global_thread_pools_test")
@@ -1767,6 +1773,13 @@ def run_onnxruntime_tests(args, source_dir, ctest_path, build_dir, configs):
             run_subprocess(
                 [sys.executable, "onnxruntime_test_python.py"], cwd=cwd, dll_path=dll_path, python_path=python_path
             )
+
+            if args.use_kdnn:
+                run_subprocess(
+                    [sys.executable, "onnxruntime_test_python_kdnn.py", "--require-kdnn"],
+                    cwd=cwd,
+                    dll_path=dll_path,
+                )
 
             log.info("Testing Global Thread Pool feature")
             run_subprocess([sys.executable, "onnxruntime_test_python_global_threadpool.py"], cwd=cwd, dll_path=dll_path)

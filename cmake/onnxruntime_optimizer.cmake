@@ -1,3 +1,6 @@
+# Copyright (c) Huawei Technologies Co., Ltd. 2026.
+# Licensed under the MIT License.
+
 # Copyright (c) Microsoft Corporation. All rights reserved.
 # Licensed under the MIT License.
 
@@ -114,6 +117,9 @@ if(HAS_MAYBE_UNINITIALIZED)
 endif()
 
 onnxruntime_add_static_library(onnxruntime_optimizer ${onnxruntime_optimizer_srcs})
+if (onnxruntime_USE_KDNN)
+  target_compile_definitions(onnxruntime_optimizer PRIVATE USE_KDNN=1)
+endif()
 
 onnxruntime_add_include_to_target(onnxruntime_optimizer onnxruntime_common onnxruntime_framework onnx onnx_proto ${PROTOBUF_LIB} flatbuffers::flatbuffers Boost::mp11 safeint_interface)
 target_include_directories(onnxruntime_optimizer PRIVATE ${ONNXRUNTIME_ROOT})

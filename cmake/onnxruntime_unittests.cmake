@@ -1,3 +1,6 @@
+# Copyright (c) Huawei Technologies Co., Ltd. 2026.
+# Licensed under the MIT License.
+
 # Copyright (c) Microsoft Corporation. All rights reserved.
 # Licensed under the MIT License.
 if (IOS)
@@ -697,6 +700,7 @@ set(ONNXRUNTIME_TEST_STATIC_PROVIDER_LIBS
     ${PROVIDERS_ACL}
     ${PROVIDERS_COREML}
     ${PROVIDERS_XNNPACK}
+    ${PROVIDERS_KDNN}
     ${PROVIDERS_AZURE}
 )
 
@@ -812,6 +816,12 @@ if(onnxruntime_USE_COREML)
   endif()
   list(APPEND onnxruntime_test_providers_dependencies onnxruntime_providers_coreml coreml_proto)
   list(APPEND onnxruntime_test_providers_libs onnxruntime_providers_coreml coreml_proto)
+endif()
+
+if(onnxruntime_USE_KDNN)
+  list(APPEND onnxruntime_test_framework_src_patterns ${TEST_SRC_DIR}/providers/kdnn/*)
+  list(APPEND onnxruntime_test_providers_dependencies onnxruntime_providers_kdnn)
+  list(APPEND onnxruntime_test_providers_libs onnxruntime_providers_kdnn)
 endif()
 
 if(onnxruntime_USE_XNNPACK)
@@ -1053,6 +1063,18 @@ if(NOT onnxruntime_ENABLE_CUDA_EP_INTERNAL_TESTS)
 endif()
 
 partition_provider_test_srcs(all_tests onnxruntime_provider_test_srcs onnxruntime_test_all_srcs)
+
+if (onnxruntime_USE_KDNN)
+  # Keep focused EP validation independent of model-zoo data discovery in the
+  # general provider runner. AddTest registers this target with CTest as usual.
+  file(GLOB kdnn_test_sources CONFIGURE_DEPENDS "${TEST_SRC_DIR}/providers/kdnn/*.cc")
+  list(REMOVE_ITEM onnxruntime_provider_test_srcs ${kdnn_test_sources})
+  AddTest(TARGET onnxruntime_kdnn_test
+    SOURCES ${kdnn_test_sources} ${onnxruntime_unittest_main_src}
+    LIBS ${onnx_test_runner_common_lib} ${onnxruntime_test_providers_libs}
+         ${onnxruntime_test_common_libs} onnx_test_data_proto
+    DEPENDS ${all_dependencies})
+endif()
 
 # Workarounds for onnxruntime test targets.
 function(onnxruntime_apply_test_target_workarounds target)
