@@ -307,6 +307,12 @@ Status ParallelExecutor::RunOneNode(size_t node_index, const SessionState& sessi
   }
 
   if (!status.IsOK()) {
+    if (f_profiler_enabled) {
+      // Pair with StartProfiling() above before returning: the collected stats
+      // are dropped, but stopping resets the thread pool profiler state so the
+      // partial data is not carried into the next profiled node.
+      concurrency::ThreadPool::StopProfiling(session_state.GetThreadPool());
+    }
     std::ostringstream ss;
     ss << "Non-zero status code returned while running " << node.OpType() << " node. Name:'" << node.Name()
        << "' Status Message: " << status.ErrorMessage();

@@ -19,8 +19,12 @@ set_source_files_properties("${ONNXRUNTIME_ROOT}/core/providers/kdnn/attention/a
 
 # Cover the KDNN EP runtime and the schema compiled into onnxruntime_graph.
 # Instrument the schema source without changing its owning target.
-# LLVM source coverage is enabled automatically for Clang KDNN builds.
-if (CMAKE_CXX_COMPILER_ID MATCHES "Clang")
+# LLVM source coverage is opt-in, mirroring the GCC route below
+# (onnxruntime_KDNN_GCOV_COVERAGE). Keeping it OFF leaves a plain Clang +
+# USE_KDNN build optimized and free of instrumentation.
+option(onnxruntime_KDNN_LLVM_COVERAGE
+  "Instrument the KDNN EP sources for LLVM source-based coverage (Clang only)" OFF)
+if (CMAKE_CXX_COMPILER_ID MATCHES "Clang" AND onnxruntime_KDNN_LLVM_COVERAGE)
   set(onnxruntime_kdnn_coverage_sources
     "${ONNXRUNTIME_ROOT}/core/providers/kdnn/kdnn_execution_provider.cc"
     "${ONNXRUNTIME_ROOT}/core/providers/kdnn/kdnn_provider_options.cc"

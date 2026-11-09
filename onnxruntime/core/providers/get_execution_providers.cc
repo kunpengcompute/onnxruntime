@@ -1,6 +1,9 @@
 // Copyright (c) Huawei Technologies Co., Ltd. 2026.
 // Licensed under the MIT License.
 
+// Copyright (c) Microsoft Corporation. All rights reserved.
+// Licensed under the MIT License.
+
 #include "core/providers/get_execution_providers.h"
 
 #include "core/graph/constants.h"
