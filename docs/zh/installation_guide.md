@@ -28,14 +28,32 @@
 
 **软件要求**
 
-已验证的软件依赖环境如[**表 3** 软件要求](#软件要求)所示。
+已验证的软件依赖环境如[**表 3** 软件要求](#软件要求)所示，系统自带的Python版本可能较低，建议在进行ONNX Runtime推理时，通过Miniconda虚拟环境安装匹配版本的python，避免直接替换系统Python导致系统异常。参考以下命令安装Miniconda。
+
+```bash
+# 下载Miniconda
+wget https://mirrors.tuna.tsinghua.edu.cn/anaconda/miniconda/Miniconda3-latest-Linux-x86_64.sh -O ~/miniconda.sh
+# 安装Miniconda
+bash ~/miniconda.sh -b -u -p ~/miniconda3
+# 初始化
+source ~/miniconda3/bin/activate
+# 创建虚拟环境myconda
+conda create -n myconda python=3.13.18 -y
+# 激活conda环境
+conda activate myconda
+# 安装CMake
+conda install -c conda-forge cmake=3.30.3
+# 安装Numpy
+pip install numpy=2.5.3
+```
 
 **表 3** 软件要求<a id="软件要求"></a>
 
 | 项目 | 版本 | 说明 | 下载地址 |
 | ---- | ---- | ---- | ---- |
-| Python  | 3.13.18 | Python是ONNX Runtime的构建过程中的辅助工具，起到自动下载依赖、配置环境等作用。 | 通过Yum源方式安装。 |
-| CMake   | 3.30.3  | CMake是ONNX Runtime的构建工具，要求CMake版本为3.28.3及以上。 | 通过Yum源方式安装。 |
+| Python  | 3.13.18 | Python是ONNX Runtime的构建过程中的辅助工具，起到自动下载依赖、配置环境等作用。 | 通过Conda虚拟环境安装。 |
+| CMake   | 3.30.3  | CMake是ONNX Runtime的构建工具，要求CMake版本为3.28.3及以上。 | 通过Conda虚拟环境安装。 |
+| Numpy | 2.5.3  | Numpy（Numerical Python）是Python 科学计算的底层核心库，要求Numpy版本为2.0.0以上。 | 通过pip方式安装。 |
 | GCC/G++ | 12.3.1  | GCC（GNU Compiler Collection）是一种编程语言编译器。 | 通过Yum源方式安装。 |
 
 ## 准备特性依赖
@@ -67,15 +85,15 @@
 
    - Linux执行命令如下。
 
-        ```bash
+      ```bash
       sha256sum BoostKit-boostcore-kdnn_xxx.zip
       ```
 
    - Windows执行命令如下。
 
-        ```bash
-       certutil -hashfile BoostKit-boostcore-kdnn_xxx.zip SHA256
-       ```
+      ```bash
+      certutil -hashfile BoostKit-boostcore-kdnn_xxx.zip SHA256
+      ```
 
       命令执行完成后，输出校验值。
 
@@ -117,11 +135,27 @@
    ```bash
    export ORT_PATH=/path/to/onnxruntime
    mkdir -p $ORT_PATH/onnxruntime/core/kdnn/out
+   mkdir -p $ORT_PATH/onnxruntime/core/kdnn/out/lib
    cp -r /usr/local/kdnn/include $ORT_PATH/onnxruntime/core/kdnn/out
-   cp -r /usr/local/kdnn/lib $ORT_PATH/onnxruntime/core/kdnn/out
+   cp -r /usr/local/kdnn/lib/omp/* $ORT_PATH/onnxruntime/core/kdnn/out/lib
    ```
 
 4. 编译安装onnxruntime。
+
+   在执行编译前，需要先配置编译依赖包。onnxruntime的wheel包编译依赖如下包。
+
+   - packaging：用于构建wheel包。
+   - wheel  ：用于安装wheel包。
+   - setuptools：用于构建wheel包。
+
+   ```bash
+   # 检查是否安装了相关依赖包
+   pip show packaging wheel setuptools
+   # 若未安装，执行以下命令安装
+   pip install packaging wheel setuptools
+   ```
+
+   编译并安装onnxruntime。
 
    ```bash
    # 编译onnxruntime
@@ -147,13 +181,13 @@
 
    ```bash
    yum install cmake ninja-build protobuf-devel protobuf-compiler \
+         gtest-devel unzip rpm cpio \
          gcc gcc-c++ python3-devel numactl \
          llvm-toolset-20-llvm llvm-toolset-20-llvm-devel \
          llvm-toolset-20-llvm-libs llvm-toolset-20-llvm-static \
          llvm-toolset-20-llvm-mlir llvm-toolset-20-llvm-mlir-devel \
          llvm-toolset-20-llvm-mlir-static llvm-toolset-20-python3-mlir \
          llvm-toolset-20-clang
-   pip install numpy
    ```
 
 2. 获取ANNC源码。
@@ -176,7 +210,7 @@
    ```bash
    export ORT_PATH=/path/to/onnxruntime
    export ANNC_ONNXRUNTIME_INCLUDE_DIR=$ORT_PATH/include/onnxruntime/core/session
-   export ANNC_EP_ORT_BUILD_TREE=$ORT_PATH/build/Release
+   export ANNC_EP_ORT_BUILD_TREE=$ORT_PATH/build/Linux/Release
    export ANNC_MLAS_INCLUDE_DIR=$ORT_PATH/onnxruntime/core/mlas/inc
 
    ./build.sh --no-install-deps \
