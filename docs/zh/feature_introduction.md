@@ -15,7 +15,8 @@
 - FusedBatchMatmulAdd
 - FusedMaskedMul
 
-> **说明：** 上述算子优化适用的模型，模型计算图中应该至少含有上述任一融合算子的子图结构，否则上述图优化应用后没有收益。
+>![note](./public_sys-resources/icon-note.gif) **说明：** 
+>上述算子优化适用的模型，模型计算图中应该至少含有上述任一融合算子的子图结构，否则上述图优化应用后没有收益。
 
 ### 实现原理
 
@@ -32,7 +33,7 @@ ONNX Runtime图优化整体流程如[**图 1** ONNX Runtime图优化流程](figu
 
 **图 1** ONNX Runtime图优化流程 <a id="ONNX Runtime图优化流程"></a>
 
-![](figures/图编译优化整体流程.png "ONNX Runtime图优化流程")
+!["ONNX Runtime图优化流程"](figures/图编译优化整体流程.png)
 
 ### 融合算子
 
@@ -54,7 +55,7 @@ $$
 
 **图 2** LayerNormalization示意图 <a id="LayerNormalization示意图"></a>
 
-![](figures/Layernorm.png "LayerNormalization")
+!["LayerNormalization"](figures/Layernorm.png)
 
 **FusedTensordotMatmul**
 
@@ -62,7 +63,7 @@ FusedTensordotMatmul的子图如[**图 3** FusedTensordotMatmul示意图](figure
 
 **图 3** FusedTensordotMatmul <a id="FusedTensordotMatmul示意图"></a>
 
-![](figures/FusedTensordotMatmul.png "FusedTensordotMatmul示意图")
+!["FusedTensordotMatmul示意图"](figures/FusedTensordotMatmul.png)
 
 **KdnnFusedAttention**
 
@@ -70,7 +71,7 @@ KdnnFusedAttention的子图如[**图 4** KdnnFusedAttention示意图](figures/Kd
 
 **图 4** KdnnFusedAttention <a id="KdnnFusedAttention示意图"></a>
 
-![](figures/KdnnFusedAttention.png "KdnnFusedAttention示意图")
+!["KdnnFusedAttention示意图"](figures/KdnnFusedAttention.png)
 
 **FusedBatchMatmulAdd**
 
@@ -94,7 +95,7 @@ FusedBatchMatmulAdd的子图如[**图 5** FusedBatchMatmulAdd示意图](figures/
 
 **图 5** FusedBatchMatmulAdd <a id="FusedBatchMatmulAdd示意图"></a>
 
-![](figures/FusedBatchMatmulAdd.png "FusedBatchMatmulAdd示意图")
+!["FusedBatchMatmulAdd示意图"](figures/FusedBatchMatmulAdd.png)
 
 **FusedMaskedMul**
 
@@ -102,7 +103,7 @@ FusedMaskedMul的子图如[**图 6** FusedMaskedMul示意图](figures/FusedMaske
 
 **图 6** FusedMaskedMul <a id="FusedMaskedMul示意图"></a>
 
-![](figures/FusedMaskedMul.png "FusedMaskedMul示意图")
+!["FusedMaskedMul示意图"](figures/FusedMaskedMul.png)
 
 ## ONNX Runtime并行调度优化
 
@@ -116,15 +117,15 @@ FusedMaskedMul的子图如[**图 6** FusedMaskedMul示意图](figures/FusedMaske
 
 **图 7** 推理图 <a id="推理图"></a>
 
-![](figures/推理图.png "推理图")
+!["推理图"](figures/推理图.png)
 
 **图 8** 串行执行图 <a id="串行执行图"></a>
 
-![](figures/串行.png "串行执行图")
+!["串行执行图"](figures/串行.png)
 
 **图 9** 并行执行图 <a id="并行执行图"></a>
 
-![](figures/并行.png "并行执行图")
+!["并行执行图"](figures/并行.png)
 
 该调度器以图拓扑为调度依据，为每个节点维护输入依赖计数，根节点直接入队就绪队列；多工作线程通过自旋-等待混合策略从共享就绪队列中拉取节点并发执行，节点完成后原子递减下游节点的引用计数，归零时立即触发下游节点入队，实现全图细粒度的流水线式并行调度。
 

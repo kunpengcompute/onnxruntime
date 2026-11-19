@@ -1,5 +1,9 @@
 # 鲲鹏ONNX Runtime介绍
 
+简体中文|[English](./README_en.md)
+
+本文档介绍鲲鹏ONNX Runtime，鲲鹏ONNX Runtime在图融合、算子执行、算子调度等方面进行了深度性能优化，适用于高性能推理加速扩展场景。
+
 ## 最新消息
 
 [2026-12-30]：发布鲲鹏ONNX Runtime优化补丁1.0.0版本，新增并行调度优化和图优化特性。
@@ -10,10 +14,10 @@
 
 ## 特性介绍
 
-| 特性名称   | 特性简介                                             |
+| 特性名称 | 特性简介 |
 | ------ | ------------------------------------------------ |
 | 并行调度优化 | 改进算子调度算法，引入并行调度器实现算子间并行调度机制，有效提升了高并发场景下的模型推理吞吐量。 |
-| 图优化    | 聚焦于通过计算图优化，调用高性能融合算子，加速模型的推理性能。                  |
+| 图优化 | 聚焦于通过计算图优化，调用高性能融合算子，加速模型的推理性能。 |
 
 更多特性介绍内容请参见《[特性介绍](./docs/zh/feature_introduction.md)》。
 
@@ -41,13 +45,13 @@ onnxruntime
 
 ## 学习文档
 
-| 学习资源名称                                    | 学习资源简介                                    |
+| 学习文档名称 | 学习文档简介 |
 | ----------------------------------------- | ----------------------------------------- |
-| [版本说明书](./docs/zh/release_notes.md)       | 提供鲲鹏ONNX Runtime每个发布版本的基础信息和特性更新信息。       |
-| [特性介绍](./docs/zh/feature_introduction.md) | 介绍鲲鹏ONNX Runtime基于开源ONNX Runtime的功能点和优化点。 |
-| [安装指南](./docs/zh/installation_guide.md)   | 提供鲲鹏ONNX Runtime编译安装指导。                   |
-| [快速入门](./docs/zh/quick_start.md)   | 提供鲲鹏ONNX Runtime快速入门指导。                   |
-| [API参考](./docs/zh/api_reference.md)       | 提供鲲鹏ONNX Runtime的接口使用说明。                  |
+| 《[版本说明书](./docs/zh/release_notes.md)》 | 提供鲲鹏ONNX Runtime每个发布版本的基础信息和特性更新信息。 |
+| 《[特性介绍](./docs/zh/feature_introduction.md)》 | 介绍鲲鹏ONNX Runtime基于开源ONNX Runtime的功能点和优化点。 |
+| 《[安装指南](./docs/zh/installation_guide.md)》 | 提供鲲鹏ONNX Runtime编译安装指导。 |
+| 《[快速入门](./docs/zh/quick_start.md)》 | 提供鲲鹏ONNX Runtime快速入门指导。 |
+| 《[API参考](./docs/zh/api_reference.md)》 | 提供鲲鹏ONNX Runtime的接口使用说明。 |
 
 ## 免责声明
 
