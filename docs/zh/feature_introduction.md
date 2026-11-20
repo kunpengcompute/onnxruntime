@@ -15,7 +15,8 @@
 - FusedBatchMatmulAdd
 - FusedMaskedMul
 
-> **说明：** 上述算子优化适用的模型，模型计算图中应该至少含有上述任一融合算子的子图结构，否则上述图优化应用后没有收益。
+>![note](./public_sys-resources/icon-note.gif) **说明：** 
+>上述算子优化适用的模型，模型计算图中应该至少含有上述任一融合算子的子图结构，否则上述图优化应用后没有收益。
 
 ### 实现原理
 
@@ -32,7 +33,7 @@ ONNX Runtime图优化整体流程如[**图 1** ONNX Runtime图优化流程](figu
 
 **图 1** ONNX Runtime图优化流程 <a id="ONNX Runtime图优化流程"></a>
 
-![](figures/图编译优化整体流程.png "ONNX Runtime图优化流程")
+!["ONNX Runtime图优化流程"：加载ONNX模型之后开启图优化，按顺序进行四个级别的优化，最后分配到执行器](figures/图编译优化整体流程.png)
 
 ### 融合算子
 
@@ -54,7 +55,7 @@ $$
 
 **图 2** LayerNormalization示意图 <a id="LayerNormalization示意图"></a>
 
-![](figures/Layernorm.png "LayerNormalization")
+!["融合算子LayerNormalization示意图：左侧蓝色框内是一段以MatMul→Add结果为起点的计算子图：Add的输出分成三路，一路经ReduceMean求均值；一路经 Sub→Mul→ReduceMean→ReduceMean→Add→Sqrt→Reciprocal→Mul 完成方差与归一化计算；第三路与归一化结果经Mul相乘，再与另一路Mul、最终Add汇聚后输出。右侧箭头指向一个 LayerNormalization节点。"](figures/Layernorm.png)
 
 **FusedTensordotMatmul**
 
@@ -62,7 +63,7 @@ FusedTensordotMatmul的子图如[**图 3** FusedTensordotMatmul示意图](figure
 
 **图 3** FusedTensordotMatmul <a id="FusedTensordotMatmul示意图"></a>
 
-![](figures/FusedTensordotMatmul.png "FusedTensordotMatmul示意图")
+!["FusedTensordotMatmul示意图：在蓝框内分成两条路径：一条经 Transpose→Reshape→Matmul；另一条经 Shape→Cast 后分成两个 Gather→ReduceProd→Unsqueeze→Concat→Cast 分支，分别汇入两处Reshape。Matmul的结果再经Reshape输出。右侧箭头指向FusedTensordotMatmul节点。"](figures/FusedTensordotMatmul.png)
 
 **KdnnFusedAttention**
 
@@ -70,7 +71,7 @@ KdnnFusedAttention的子图如[**图 4** KdnnFusedAttention示意图](figures/Kd
 
 **图 4** KdnnFusedAttention <a id="KdnnFusedAttention示意图"></a>
 
-![](figures/KdnnFusedAttention.png "KdnnFusedAttention示意图")
+!["KdnnFusedAttention示意图：Q、K分别经Reshape/Transpose进入首个Matmul，结果依次经过Mul/Div、Add、Softmax进入第二个Matmul；V经Reshape/Transpose后汇入第二个Matmul，其输出再经Reshape/Transpose输出。下方箭头指向KdnnFusedAttention节点。"](figures/KdnnFusedAttention.png)
 
 **FusedBatchMatmulAdd**
 
@@ -94,7 +95,7 @@ FusedBatchMatmulAdd的子图如[**图 5** FusedBatchMatmulAdd示意图](figures/
 
 **图 5** FusedBatchMatmulAdd <a id="FusedBatchMatmulAdd示意图"></a>
 
-![](figures/FusedBatchMatmulAdd.png "FusedBatchMatmulAdd示意图")
+!["FusedBatchMatmulAdd示意图：data与weight进入Matmul，其结果与bias一起输入Add并输出。下方箭头指向FusedBatchMatmulAdd节点。"](figures/FusedBatchMatmulAdd.png)
 
 **FusedMaskedMul**
 
@@ -102,7 +103,7 @@ FusedMaskedMul的子图如[**图 6** FusedMaskedMul示意图](figures/FusedMaske
 
 **图 6** FusedMaskedMul <a id="FusedMaskedMul示意图"></a>
 
-![](figures/FusedMaskedMul.png "FusedMaskedMul示意图")
+!["FusedMaskedMul示意图：ids依次经过Equal→Not→Cast→Unsqueeze→Tile生成掩码，与data一同输Mul后输出。下方箭头指向FusedMaskedMul节点。"](figures/FusedMaskedMul.png)
 
 ## ONNX Runtime并行调度优化
 
@@ -116,15 +117,15 @@ FusedMaskedMul的子图如[**图 6** FusedMaskedMul示意图](figures/FusedMaske
 
 **图 7** 推理图 <a id="推理图"></a>
 
-![](figures/推理图.png "推理图")
+!["推理图：从A同时到B、C，最后推理得出D"](figures/推理图.png)
 
 **图 8** 串行执行图 <a id="串行执行图"></a>
 
-![](figures/串行.png "串行执行图")
+!["串行执行图：从A到B到C到D"](figures/串行.png)
 
 **图 9** 并行执行图 <a id="并行执行图"></a>
 
-![](figures/并行.png "并行执行图")
+!["并行执行图：从A到B到D，C同时执行"](figures/并行.png)
 
 该调度器以图拓扑为调度依据，为每个节点维护输入依赖计数，根节点直接入队就绪队列；多工作线程通过自旋-等待混合策略从共享就绪队列中拉取节点并发执行，节点完成后原子递减下游节点的引用计数，归零时立即触发下游节点入队，实现全图细粒度的流水线式并行调度。
 

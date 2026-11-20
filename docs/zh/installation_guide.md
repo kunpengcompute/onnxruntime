@@ -73,8 +73,8 @@ pip install numpy=2.5.3
 这里通过对比校验文件中记录的校验值和手动方式计算的软件包校验值，判断软件包是否完整。若两个值相同，说明文件完整，否则，文件完整性被破坏，请重新获取软件包。<br>
 在校验软件包完整性之前，需要准备如下文件。
 
-> ![icon note](public_sys-resources/icon-note.gif) **说明** 
-> 以下软件包`BoostKit-boostcore-kdnn_xxx.zip`中占位符`xxx`需按实际版本替换。
+>![icon note](public_sys-resources/icon-note.gif) **说明**
+>以下软件包`BoostKit-boostcore-kdnn_xxx.zip`中占位符`xxx`需按实际版本替换。
 
 - 软件包：BoostKit-boostcore-kdnn_xxx.zip。
 - 校验文件：同名的.sha256文件。
