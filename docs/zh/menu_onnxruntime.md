@@ -4,3 +4,4 @@
 - [版本说明书](./release_notes.md)
 - [安装指南](./installation_guide.md)
 - [快速入门](./quick_start.md)
+- [常见问题和故障案例](./faq.md)

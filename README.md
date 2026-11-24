@@ -52,6 +52,7 @@ onnxruntime
 | 《[安装指南](./docs/zh/installation_guide.md)》 | 提供鲲鹏ONNX Runtime编译安装指导。 |
 | 《[快速入门](./docs/zh/quick_start.md)》 | 提供鲲鹏ONNX Runtime快速入门指导。 |
 | 《[API参考](./docs/zh/api_reference.md)》 | 提供鲲鹏ONNX Runtime的接口使用说明。 |
+| 《[常见问题和故障案例](./docs/zh/faq.md)》 | 提供鲲鹏ONNX Runtime的常见问题和故障案例。 |
 
 ## 免责声明
 
