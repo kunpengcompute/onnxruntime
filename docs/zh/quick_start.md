@@ -4,7 +4,7 @@
 
 ## 安装鲲鹏ONNX Runtime
 
-在使用ONNX Runtime进行推理服务前，请参见《[安装指南](./installation_guide.md)》完成鲲鹏ONNX Runtime的[构建安装](./installation_guide.md##编译安装Onnxruntime)。
+在使用ONNX Runtime进行推理服务前，请参见《[安装指南](./installation_guide.md)》完成鲲鹏ONNX Runtime的[构建安装](./installation_guide.md#编译安装Onnxruntime)。
 
 ## 运行推理服务
 
